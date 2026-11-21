@@ -1,0 +1,25 @@
+# Pings the backend so Render's free plan doesn't put it to sleep (it sleeps after ~15 min
+# without traffic). Keeping it awake also lets the interview-reminder job run on time.
+# One always-on free service uses ~730 of Render's 750 free hours per month.
+#
+# GitHub may delay scheduled runs by a few minutes, and pauses schedules in repos with no
+# activity for 60 days (re-enable from the Actions tab). Set the BACKEND_URL repository
+# variable to override the default URL.
+name: Keep backend awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Ping /ping
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL || 'https://applyrec.onrender.com' }}
+        run: curl --fail --silent --show-error --max-time 90 --retry 2 --retry-delay 10 "$BACKEND_URL/ping"

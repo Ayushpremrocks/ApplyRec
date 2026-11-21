@@ -65,7 +65,7 @@ public class AuthService {
                 new UserInfo(user.getId(), user.getEmail()), jwtService.generateToken(user.getId()));
     }
 
-    static String normalizeEmail(String email) {
+    public static String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }
 }

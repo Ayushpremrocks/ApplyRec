@@ -6,6 +6,8 @@ import {
   setAuthToken,
   getAuthToken,
   setUnauthorizedHandler,
+  setRetryDelays,
+  subscribeServerWaking,
 } from './api';
 
 const b64url = (obj) => btoa(JSON.stringify(obj)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -27,6 +29,7 @@ describe('api', () => {
     localStorage.clear();
     onUnauthorized = vi.fn();
     setUnauthorizedHandler(onUnauthorized);
+    setRetryDelays([0, 0]);
   });
 
   afterEach(() => {
@@ -87,5 +90,48 @@ describe('api', () => {
     const [, init] = globalThis.fetch.mock.calls[0];
     expect(init.headers.Authorization).toBe('Bearer abc');
     expect(init.body).toBe('{"a":1}');
+  });
+
+  it('retries GETs through a cold start and succeeds', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.reject(new Error('html')) })
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ applications: [] }) });
+    await expect(apiRequest('/applications')).resolves.toEqual({ applications: [] });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('never retries writes (they might not be idempotent)', async () => {
+    mockFetch(503);
+    await expect(apiRequest('/applications', { method: 'POST', body: {} })).rejects.toMatchObject({ status: 503 });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('explains rate limiting', async () => {
+    mockFetch(429, { error: 'Too many failed sign-in attempts.' });
+    await expect(apiRequest('/auth/login', { method: 'POST', body: {} })).rejects.toMatchObject({
+      status: 429,
+      message: 'Too many failed sign-in attempts.',
+    });
+  });
+
+  it('signals a waking server while a request is slow', async () => {
+    vi.useFakeTimers();
+    try {
+      let resolve;
+      globalThis.fetch = vi.fn(() => new Promise((r) => (resolve = r)));
+      const states = [];
+      const unsubscribe = subscribeServerWaking((w) => states.push(w));
+      const pending = apiRequest('/applications');
+      await vi.advanceTimersByTimeAsync(3100);
+      expect(states).toEqual([true]);
+      resolve({ ok: true, status: 200, json: () => Promise.resolve({ ok: 1 }) });
+      await pending;
+      expect(states).toEqual([true, false]);
+      unsubscribe();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -1,32 +1,45 @@
 import React from 'react';
 import styles from './Statistics.module.css';
-import { STATUSES } from '../utils/applications';
+import { STATUSES, STATUS_VAR } from '../utils/applications';
 
-/** Always summarises the user's full application list, regardless of active filters. */
-function Statistics({ applications }) {
+/**
+ * Counts for active (non-archived) applications. Each status tile is a filter shortcut.
+ */
+function Statistics({ applications, activeStatus, onSelectStatus }) {
+  const active = applications.filter((a) => !a.archived);
   const counts = Object.fromEntries(STATUSES.map((s) => [s, 0]));
   let followUp = 0;
-  applications.forEach((app) => {
+  active.forEach((app) => {
     if (app.status in counts) counts[app.status] += 1;
     if (app.follow_up) followUp += 1;
   });
 
   return (
     <div className={styles.container}>
-      <div className={styles.statCard}>
-        <div className={styles.statValue}>{applications.length}</div>
-        <div className={styles.statLabel}>Total Applications</div>
+      <div className={`${styles.stat} ${styles.total}`}>
+        <span className={styles.value}>{active.length}</span>
+        <span className={styles.label}>Total Applications</span>
       </div>
       {STATUSES.map((status) => (
-        <div key={status} className={`${styles.statCard} ${styles[status.toLowerCase()] || ''}`}>
-          <div className={styles.statValue}>{counts[status]}</div>
-          <div className={styles.statLabel}>{status}</div>
-        </div>
+        <button
+          type="button"
+          key={status}
+          className={`${styles.stat} ${activeStatus === status ? styles.selected : ''}`}
+          style={{ '--status': STATUS_VAR[status] }}
+          aria-pressed={activeStatus === status}
+          onClick={() => onSelectStatus?.(activeStatus === status ? null : status)}
+        >
+          <span className={styles.value}>{counts[status]}</span>
+          <span className={styles.label}>
+            <span className={styles.dot} aria-hidden="true" />
+            {status}
+          </span>
+        </button>
       ))}
       {followUp > 0 && (
-        <div className={`${styles.statCard} ${styles.followUp}`}>
-          <div className={styles.statValue}>{followUp}</div>
-          <div className={styles.statLabel}>Follow Up</div>
+        <div className={`${styles.stat} ${styles.follow}`}>
+          <span className={styles.value}>{followUp}</span>
+          <span className={styles.label}>Follow Up</span>
         </div>
       )}
     </div>

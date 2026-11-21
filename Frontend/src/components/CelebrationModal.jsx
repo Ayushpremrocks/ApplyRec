@@ -1,86 +1,65 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './CelebrationModal.module.css';
+import Modal from './Modal';
 import Button from './Button';
 
-function CelebrationModal({ companyName, onClose }) {
-  const [confetti, setConfetti] = useState([]);
+const COLORS = ['#a3e635', '#fbbf24', '#f472b6', '#60a5fa', '#34d399', '#f87171'];
 
-  useEffect(() => {
-    const colors = ['#a3e635', '#fbbf24', '#f472b6', '#60a5fa', '#34d399', '#f87171'];
-    const pieces = [];
-    
-    for (let i = 0; i < 50; i++) {
-      pieces.push({
+function CelebrationModal({ companyName, onClose }) {
+  const confetti = useMemo(
+    () =>
+      Array.from({ length: 60 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
-        delay: Math.random() * 2,
-        duration: 2 + Math.random() * 2,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        size: 8 + Math.random() * 8,
-      });
-    }
-    
-    setConfetti(pieces);
-  }, []);
+        delay: Math.random() * 1.5,
+        duration: 2.5 + Math.random() * 2,
+        color: COLORS[i % COLORS.length],
+        size: 6 + Math.random() * 8,
+      })),
+    []
+  );
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.confettiContainer}>
-        {confetti.map((piece) => (
-          <div
-            key={piece.id}
-            className={styles.confetti}
-            style={{
-              left: `${piece.left}%`,
-              animationDelay: `${piece.delay}s`,
-              animationDuration: `${piece.duration}s`,
-              backgroundColor: piece.color,
-              width: `${piece.size}px`,
-              height: `${piece.size}px`,
-            }}
-          />
-        ))}
-      </div>
-      
-      <div className={styles.modal}>
-        <div className={styles.emojiContainer}>
-          <span className={styles.emoji}>🎉</span>
-          <span className={styles.emoji}>🎊</span>
-          <span className={styles.emoji}>🥳</span>
-        </div>
-        
-        <h1 className={styles.title}>CONGRATULATIONS!</h1>
-        
-        <div className={styles.companyBadge}>
-          <span className={styles.companyLabel}>You got an offer from</span>
-          <span className={styles.companyName}>{companyName}</span>
-        </div>
-        
-        <p className={styles.message}>
-          All your hard work paid off! This is a huge achievement.
-          Take a moment to celebrate - you earned it!
-        </p>
-        
-        <div className={styles.stats}>
-          <div className={styles.stat}>
-            <span className={styles.statEmoji}>🌟</span>
-            <span className={styles.statText}>You're amazing!</span>
+    <>
+      {createPortal(
+        <div className={styles.confetti} aria-hidden="true">
+          {confetti.map((p) => (
+            <span
+              key={p.id}
+              style={{
+                left: `${p.left}%`,
+                animationDelay: `${p.delay}s`,
+                animationDuration: `${p.duration}s`,
+                background: p.color,
+                width: p.size,
+                height: p.size * 0.6,
+              }}
+            />
+          ))}
+        </div>,
+        document.body
+      )}
+      <Modal
+        title="Congratulations!"
+        size="sm"
+        onClose={onClose}
+        footer={
+          <Button onClick={onClose} block data-autofocus>
+            Thanks! Let's go!
+          </Button>
+        }
+      >
+        <div className={styles.body}>
+          <div className={styles.emoji} aria-hidden="true">
+            🎉🥳🎊
           </div>
-          <div className={styles.stat}>
-            <span className={styles.statEmoji}>🚀</span>
-            <span className={styles.statText}>New journey begins!</span>
-          </div>
-          <div className={styles.stat}>
-            <span className={styles.statEmoji}>💪</span>
-            <span className={styles.statText}>Hard work pays off!</span>
-          </div>
+          <p className={styles.lead}>You got an offer from</p>
+          <p className={styles.company}>{companyName}</p>
+          <p className={styles.message}>All your hard work paid off. Take a moment to celebrate — you earned it!</p>
         </div>
-        
-        <Button onClick={onClose}>
-          Thanks! Let's go!
-        </Button>
-      </div>
-    </div>
+      </Modal>
+    </>
   );
 }
 

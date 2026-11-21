@@ -1,9 +1,11 @@
 package com.applyrec.controller;
 
 import com.applyrec.dto.ApplicationDtos.ApplicationResponse;
+import com.applyrec.dto.ApplicationDtos.ArchiveRequest;
 import com.applyrec.dto.ApplicationDtos.CreateOrUpdateRequest;
+import com.applyrec.dto.ApplicationDtos.InterviewRequest;
+import com.applyrec.dto.ApplicationDtos.StatusChangeResponse;
 import com.applyrec.dto.ApplicationDtos.StatusUpdateRequest;
-import com.applyrec.entity.Application;
 import com.applyrec.security.UserPrincipal;
 import com.applyrec.service.ApplicationService;
 import jakarta.validation.Valid;
@@ -32,11 +34,11 @@ public class ApplicationController {
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody CreateOrUpdateRequest request
     ) {
-        Application app = applicationService.createApplication(principal.userId(), request);
+        ApplicationResponse app = applicationService.createApplication(principal.userId(), request);
         return Map.of(
                 "message", "Application created successfully",
-                "applicationId", app.getId(),
-                "application", ApplicationResponse.from(app)
+                "applicationId", app.id(),
+                "application", app
         );
     }
 
@@ -48,12 +50,8 @@ public class ApplicationController {
             @RequestParam(required = false) BigDecimal minSalary,
             @RequestParam(required = false) BigDecimal maxSalary
     ) {
-        List<ApplicationResponse> apps = applicationService
-                .getApplications(principal.userId(), status, role, minSalary, maxSalary)
-                .stream()
-                .map(ApplicationResponse::from)
-                .toList();
-        return Map.of("applications", apps);
+        return Map.of("applications",
+                applicationService.getApplications(principal.userId(), status, role, minSalary, maxSalary));
     }
 
     @GetMapping("/roles")
@@ -66,7 +64,7 @@ public class ApplicationController {
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long id
     ) {
-        return Map.of("application", ApplicationResponse.from(applicationService.getApplication(principal.userId(), id)));
+        return Map.of("application", applicationService.getApplication(principal.userId(), id));
     }
 
     @PutMapping("/{id}")
@@ -75,10 +73,9 @@ public class ApplicationController {
             @PathVariable Long id,
             @Valid @RequestBody CreateOrUpdateRequest request
     ) {
-        Application app = applicationService.updateApplication(principal.userId(), id, request);
         return Map.of(
                 "message", "Application updated successfully",
-                "application", ApplicationResponse.from(app)
+                "application", applicationService.updateApplication(principal.userId(), id, request)
         );
     }
 
@@ -88,11 +85,30 @@ public class ApplicationController {
             @PathVariable Long id,
             @Valid @RequestBody StatusUpdateRequest request
     ) {
-        Application app = applicationService.updateApplicationStatus(principal.userId(), id, request.status());
         return Map.of(
                 "message", "Application status updated successfully",
-                "application", ApplicationResponse.from(app)
+                "application", applicationService.updateApplicationStatus(principal.userId(), id, request.status())
         );
+    }
+
+    @PatchMapping("/{id}/archive")
+    public Map<String, Object> setArchived(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id,
+            @Valid @RequestBody ArchiveRequest request
+    ) {
+        return Map.of(
+                "message", request.archived() ? "Application archived" : "Application restored",
+                "application", applicationService.setArchived(principal.userId(), id, request.archived())
+        );
+    }
+
+    @GetMapping("/{id}/history")
+    public Map<String, List<StatusChangeResponse>> getHistory(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id
+    ) {
+        return Map.of("history", applicationService.getHistory(principal.userId(), id));
     }
 
     @DeleteMapping("/{id}")
@@ -102,5 +118,45 @@ public class ApplicationController {
     ) {
         applicationService.deleteApplication(principal.userId(), id);
         return Map.of("message", "Application deleted successfully");
+    }
+
+    // ------------------------------------------------------------------ interviews
+
+    @PostMapping("/{id}/interviews")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map<String, Object> addInterview(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id,
+            @Valid @RequestBody InterviewRequest request
+    ) {
+        return Map.of(
+                "message", "Interview scheduled",
+                "application", applicationService.addInterview(principal.userId(), id, request)
+        );
+    }
+
+    @PutMapping("/{id}/interviews/{interviewId}")
+    public Map<String, Object> updateInterview(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id,
+            @PathVariable Long interviewId,
+            @Valid @RequestBody InterviewRequest request
+    ) {
+        return Map.of(
+                "message", "Interview updated",
+                "application", applicationService.updateInterview(principal.userId(), id, interviewId, request)
+        );
+    }
+
+    @DeleteMapping("/{id}/interviews/{interviewId}")
+    public Map<String, Object> deleteInterview(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id,
+            @PathVariable Long interviewId
+    ) {
+        return Map.of(
+                "message", "Interview removed",
+                "application", applicationService.deleteInterview(principal.userId(), id, interviewId)
+        );
     }
 }

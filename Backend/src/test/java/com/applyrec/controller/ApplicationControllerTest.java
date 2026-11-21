@@ -2,6 +2,7 @@ package com.applyrec.controller;
 
 import com.applyrec.config.CorsConfig;
 import com.applyrec.config.SecurityConfig;
+import com.applyrec.dto.ApplicationDtos.ApplicationResponse;
 import com.applyrec.entity.Application;
 import com.applyrec.exception.NotFoundException;
 import com.applyrec.security.JwtAuthenticationFilter;
@@ -122,7 +123,7 @@ class ApplicationControllerTest {
         app.setRole("SWE");
         app.setStatus("Applied");
         app.setAppliedDate(LocalDate.parse("2025-01-01"));
-        when(applicationService.createApplication(eq(7L), any())).thenReturn(app);
+        when(applicationService.createApplication(eq(7L), any())).thenReturn(ApplicationResponse.from(app));
 
         mvc.perform(post("/api/applications").header("Authorization", bearer())
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))

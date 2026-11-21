@@ -1,40 +1,46 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import styles from './Signup.module.css';
-import Input from '../components/Input';
+import AuthLayout, { AuthField, FormAlert } from '../components/AuthLayout';
 import Button from '../components/Button';
 import { signup } from '../services/authService';
 
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function validateSignup({ email, password, confirmPassword }) {
+  const errors = {};
+  if (!email.trim()) errors.email = 'Enter your email';
+  else if (!EMAIL.test(email.trim())) errors.email = 'Enter a valid email address';
+  if (!password) errors.password = 'Choose a password';
+  else if (password.length < 6) errors.password = 'Use at least 6 characters';
+  else if (password.length > 72) errors.password = 'Use at most 72 characters';
+  if (!confirmPassword) errors.confirmPassword = 'Repeat your password';
+  else if (confirmPassword !== password) errors.confirmPassword = "Passwords don't match";
+  return errors;
+}
+
 function Signup() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ email: '', password: '', confirmPassword: '' });
+  const [touched, setTouched] = useState({});
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const errors = validateSignup(form);
+  const show = (f) => (touched[f] || submitted ? errors[f] : undefined);
+  const onChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
   };
+  const onBlur = (e) => setTouched((prev) => ({ ...prev, [e.target.name]: true }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6 || formData.password.length > 72) {
-      setError('Password must be between 6 and 72 characters');
-      return;
-    }
-
+    setSubmitted(true);
+    if (Object.keys(errors).length) return;
     setIsLoading(true);
-
     try {
-      await signup(formData.email, formData.password);
+      await signup(form.email.trim(), form.password);
       navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.message || 'Signup failed. Please try again.');
@@ -44,55 +50,57 @@ function Signup() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.floatingDot}></div>
-      <div className={styles.floatingDot}></div>
-      <div className={styles.floatingDot}></div>
-      <div className={styles.floatingDot}></div>
-      <div className={styles.card}>
-        <h1 className={styles.title}>Get Started</h1>
-        <p className={styles.subtitle}>Create an account to track your applications</p>
-
-        {error && <div className={styles.error}>{error}</div>}
-
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <Input
-            label="Email"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-
-          <Input
-            label="Password"
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-
-          <Input
-            label="Confirm Password"
-            type="password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
-
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Creating account...' : 'Sign Up'}
-          </Button>
-        </form>
-
-        <p className={styles.footer}>
+    <AuthLayout
+      title="Create your account"
+      subtitle="Start tracking your applications — it's free"
+      footer={
+        <>
           Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <FormAlert>{error}</FormAlert>
+      <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AuthField
+          id="signup-email"
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          value={form.email}
+          onChange={onChange}
+          onBlur={onBlur}
+          error={show('email')}
+        />
+        <AuthField
+          id="signup-password"
+          label="Password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          value={form.password}
+          onChange={onChange}
+          onBlur={onBlur}
+          error={show('password')}
+          hint="6–72 characters"
+        />
+        <AuthField
+          id="signup-confirm"
+          label="Confirm password"
+          name="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          value={form.confirmPassword}
+          onChange={onChange}
+          onBlur={onBlur}
+          error={show('confirmPassword')}
+        />
+        <Button type="submit" block disabled={isLoading}>
+          {isLoading ? 'Creating account…' : 'Create account'}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }
 

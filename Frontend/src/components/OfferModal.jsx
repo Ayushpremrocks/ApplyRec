@@ -1,29 +1,35 @@
 import React from 'react';
 import styles from './OfferModal.module.css';
+import Modal from './Modal';
 import Button from './Button';
 
+/** Confirms an Offer before celebrating ("Just testing" leaves the status unchanged). */
 function OfferModal({ companyName, onConfirm, onCancel }) {
   return (
-    <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <div className={styles.emoji}>🤔</div>
-        <h2 className={styles.title}>Wait a second...</h2>
-        <p className={styles.message}>
-          Did you actually receive an offer from <strong>{companyName}</strong>?
-        </p>
-        <p className={styles.subtitle}>
-          Or are you just testing the app?
-        </p>
-        <div className={styles.actions}>
-          <Button onClick={onConfirm}>
-            Yes, I got the offer!
-          </Button>
+    <Modal
+      title="Did you get an offer?"
+      size="sm"
+      onClose={onCancel}
+      footer={
+        <>
           <Button variant="secondary" onClick={onCancel}>
             Just testing
           </Button>
+          <Button onClick={onConfirm} data-autofocus>
+            Yes, I got the offer!
+          </Button>
+        </>
+      }
+    >
+      <div className={styles.body}>
+        <div className={styles.emoji} aria-hidden="true">
+          🤔
         </div>
+        <p>
+          Did you actually receive an offer from <strong>{companyName}</strong>?
+        </p>
       </div>
-    </div>
+    </Modal>
   );
 }
 

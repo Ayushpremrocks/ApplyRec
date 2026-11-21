@@ -30,6 +30,7 @@ public class CorsConfig {
         configuration.setAllowedOriginPatterns(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setExposedHeaders(List.of("Retry-After"));
         // Auth uses a bearer header, not cookies, so credentials are not needed.
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);

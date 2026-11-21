@@ -1,37 +1,38 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Landing.module.css';
+import { ThemeToggle } from '../components/AppShell';
 
 const FEATURES = [
   {
     icon: '01',
-    title: 'Track Applications',
-    description: 'Keep all your job applications organized with Job ID, role, and salary tracking.',
+    title: 'Kanban Board',
+    description: 'Drag cards between stages with mouse, touch or keyboard — or just pick a status from the card.',
   },
   {
     icon: '02',
-    title: 'Salary Tracking',
-    description: 'Track expected salary in LPA format. Filter and sort by salary range.',
+    title: 'Interview Reminders',
+    description: 'Schedule every round and get an email reminder the day before.',
   },
   {
     icon: '03',
-    title: 'Kanban Board',
-    description: 'Drag and drop interface to manage your application pipeline visually.',
+    title: 'Analytics',
+    description: 'Response rate, interview rate, time to hear back and weekly activity at a glance.',
   },
   {
     icon: '04',
-    title: 'Smart Role Tags',
-    description: 'Autocomplete suggestions from your existing roles for consistency.',
+    title: 'Campus & Referrals',
+    description: 'Mark openings as on- or off-campus and see whether referrals convert better.',
   },
   {
     icon: '05',
-    title: 'Advanced Filters',
-    description: 'Filter by status, role, and salary range. Search by company name.',
+    title: 'Tags, Filters & Archive',
+    description: 'Tag applications, filter by role, salary or source, and archive the old ones.',
   },
   {
     icon: '06',
-    title: 'Statistics Dashboard',
-    description: 'Visual insights into your application progress and success rate.',
+    title: 'Status Timeline',
+    description: 'Every status change is recorded so you can see how each application progressed.',
   },
 ];
 
@@ -50,6 +51,7 @@ function Landing() {
           ApplyRec
         </div>
         <div className={styles.navLinks}>
+          <ThemeToggle />
           <Link to="/login" className={styles.navLink}>Login</Link>
           <Link to="/signup" className={styles.navButton}>Get Started</Link>
         </div>
@@ -77,7 +79,7 @@ function Landing() {
           <div className={styles.heroStats}>
             <div className={styles.heroStat}>
               <span className={styles.heroStatValue}>5</span>
-              <span className={styles.heroStatLabel}>Status Types</span>
+              <span className={styles.heroStatLabel}>Pipeline Stages</span>
             </div>
             <div className={styles.heroStatDivider}></div>
             <div className={styles.heroStat}>

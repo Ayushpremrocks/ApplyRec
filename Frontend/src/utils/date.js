@@ -24,6 +24,19 @@ export function formatDate(value) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+/** "Mon, 12 Jun, 3:30 PM" in the viewer's timezone. */
+export function formatDateTime(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'N/A';
+  return d.toLocaleString('en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export function relativeTime(value, now = new Date()) {
   const d = parseDateOnly(value);
   if (!d) return '';
@@ -45,8 +58,39 @@ export function relativeTime(value, now = new Date()) {
   return `on ${formatDate(value)}`;
 }
 
+/** "in 3 hours", "tomorrow", "in 5 days" for a future timestamp. */
+export function timeUntil(value, now = new Date()) {
+  const t = new Date(value);
+  const diffMs = t - now;
+  if (Number.isNaN(diffMs)) return '';
+  if (diffMs <= 0) return 'now';
+  const hours = Math.round(diffMs / (60 * 60 * 1000));
+  if (hours < 1) return `in ${Math.max(1, Math.round(diffMs / 60000))} min`;
+  if (hours < 24) return `in ${hours} hour${hours === 1 ? '' : 's'}`;
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfThat = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+  const days = Math.round((startOfThat - startOfToday) / MS_PER_DAY);
+  if (days === 1) return 'tomorrow';
+  return `in ${days} days`;
+}
+
 /** Today's date as "YYYY-MM-DD" in the viewer's timezone (for <input type="date">). */
 export function todayIso(now = new Date()) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/** ISO timestamp -> "YYYY-MM-DDTHH:mm" in local time (for <input type="datetime-local">). */
+export function toDateTimeLocal(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** "Week of 9 Jun" label for analytics. */
+export function formatWeek(value) {
+  const d = parseDateOnly(value);
+  if (!d) return '';
+  return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 }

@@ -1,28 +1,24 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './Dashboard.module.css';
 import Button from '../components/Button';
+import Board from '../components/Board';
 import ApplicationCard from '../components/ApplicationCard';
-import ApplicationForm from '../components/ApplicationForm';
-import FilterBar from '../components/FilterBar';
+import ApplicationForm, { APPLICATION_FORM_ID } from '../components/ApplicationForm';
+import ApplicationDrawer from '../components/ApplicationDrawer';
+import Modal from '../components/Modal';
 import Statistics from '../components/Statistics';
-import SearchBar from '../components/SearchBar';
-import SortOptions from '../components/SortOptions';
-import TrelloBoard from '../components/TrelloBoard';
-import AdvancedFilters from '../components/AdvancedFilters';
+import Toolbar from '../components/Toolbar';
+import UpcomingInterviews from '../components/UpcomingInterviews';
 import Toast from '../components/Toast';
 import OfferModal from '../components/OfferModal';
 import CelebrationModal from '../components/CelebrationModal';
-import {
-  getApplications,
-  createApplication,
-  updateApplication,
-  updateApplicationStatus,
-  deleteApplication,
-  toApplicationPayload,
-} from '../services/applicationService';
-import { logout } from '../services/authService';
-import { filterAndSort, uniqueRoles } from '../utils/applications';
+import { DashboardSkeleton } from '../components/Skeleton';
+import { useApplicationActions, useApplicationsQuery } from '../hooks/useApplications';
+import { deleteApplication, toApplicationPayload } from '../services/applicationService';
+import { EMPTY_FILTERS, filterAndSort, uniqueRoles, uniqueTags } from '../utils/applications';
+
+const UNDO_MS = 5000;
+const VIEW_KEY = 'dashboard-view';
 
 const REJECTION_MESSAGES = [
   "Keep going! Every 'no' brings you closer to 'yes'!",
@@ -33,7 +29,7 @@ const REJECTION_MESSAGES = [
 ];
 
 /** Returns the toast text and icon for a status change. */
-function statusToast(fromStatus, toStatus) {
+export function statusToast(fromStatus, toStatus) {
   switch (toStatus) {
     case 'Interview':
       if (fromStatus === 'Applied') return { message: 'Amazing! You got an interview!', icon: '🌟' };
@@ -42,230 +38,346 @@ function statusToast(fromStatus, toStatus) {
     case 'OA':
       return { message: 'Nice! Moving to Online Assessment!', icon: '✓' };
     case 'Rejected':
-      return {
-        message: REJECTION_MESSAGES[Math.floor(Math.random() * REJECTION_MESSAGES.length)],
-        icon: '💪',
-      };
-    case 'Offer':
-      return { message: 'Status updated to Offer', icon: '🎉', celebration: true };
+      return { message: REJECTION_MESSAGES[Math.floor(Math.random() * REJECTION_MESSAGES.length)], icon: '💪' };
     default:
-      return { message: 'Status updated!', icon: '✓' };
+      return { message: `Moved to ${toStatus}`, icon: '✓' };
+  }
+}
+
+function readView() {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'board';
+  } catch {
+    return 'board';
   }
 }
 
 function Dashboard() {
-  const navigate = useNavigate();
+  const { data: applications = [], isLoading, isError, error, refetch, isFetching } = useApplicationsQuery();
+  const actions = useApplicationActions();
 
-  // Full, unfiltered list for this user. Everything else is derived from it.
-  const [applications, setApplications] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const [statusFilter, setStatusFilter] = useState(null);
-  const [roleFilter, setRoleFilter] = useState('');
-  const [minSalary, setMinSalary] = useState('');
-  const [maxSalary, setMaxSalary] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [sortBy, setSortBy] = useState('newest');
-  const [viewMode, setViewMode] = useState('board');
+  const [view, setView] = useState(readView);
+  const [showArchived, setShowArchived] = useState(false);
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingApplication, setEditingApplication] = useState(null);
+  const [form, setForm] = useState(null); // null | { application: app|null }
+  const [formError, setFormError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [drawerId, setDrawerId] = useState(null);
   const [toast, setToast] = useState(null);
-  const [offerModal, setOfferModal] = useState(null);
-  const [celebrationModal, setCelebrationModal] = useState(null);
+  const [offerFor, setOfferFor] = useState(null);
+  const [celebrate, setCelebrate] = useState(null);
 
-  const showToast = useCallback((message, { type = 'success', icon, celebration = false } = {}) => {
-    setToast({ id: Date.now(), message, type, icon, celebration });
+  /** Deletes waiting out their undo window: id -> { timer, app }. */
+  const pendingDeletes = useRef(new Map());
+
+  const notify = useCallback((message, { type = 'success', icon, celebration = false, action, duration } = {}) => {
+    setToast({ id: Date.now() + Math.random(), message, type, icon, celebration, action, duration });
   }, []);
-  const hideToast = useCallback(() => setToast(null), []);
 
-  const loadApplications = useCallback(async (signal) => {
+  const changeView = (next) => {
+    setView(next);
     try {
-      const data = await getApplications({}, { signal });
-      setApplications(data);
-      setError('');
-    } catch (err) {
-      if (err.name === 'AbortError') return;
-      setError(err.message || 'Failed to load applications');
-    } finally {
-      if (!signal?.aborted) setIsLoading(false);
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // ignore
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    const controller = new AbortController();
-    loadApplications(controller.signal);
-    return () => controller.abort();
-  }, [loadApplications]);
+  // ---------------------------------------------------------------- derived data
 
-  const existingRoles = useMemo(() => uniqueRoles(applications), [applications]);
+  const roles = useMemo(() => uniqueRoles(applications), [applications]);
+  const tags = useMemo(() => uniqueTags(applications), [applications]);
+  const archivedCount = useMemo(() => applications.filter((a) => a.archived).length, [applications]);
+  const activeCount = applications.length - archivedCount;
+  const visible = useMemo(
+    () => filterAndSort(applications, { ...filters, sortBy, archived: showArchived }),
+    [applications, filters, sortBy, showArchived]
+  );
+  const drawerApp = drawerId ? applications.find((a) => a.id === drawerId) : null;
+  // A single status or the archive makes columns pointless, so use the list there.
+  const effectiveView = filters.status || showArchived ? 'list' : view;
+  const filtering = Boolean(filters.status || filters.role || filters.tag || filters.source || filters.minSalary || filters.maxSalary || filters.search);
 
-  const visibleApplications = useMemo(
-    () =>
-      filterAndSort(applications, {
-        status: statusFilter,
-        role: roleFilter,
-        minSalary,
-        maxSalary,
-        search: searchQuery,
-        sortBy,
-      }),
-    [applications, statusFilter, roleFilter, minSalary, maxSalary, searchQuery, sortBy]
+  // ------------------------------------------------------------- pending deletes
+
+  const commitDelete = useCallback(
+    async (id, { keepalive = false } = {}) => {
+      const entry = pendingDeletes.current.get(id);
+      if (!entry) return;
+      clearTimeout(entry.timer);
+      pendingDeletes.current.delete(id);
+      try {
+        await deleteApplication(id, { keepalive });
+        actions.afterDelete();
+      } catch (err) {
+        actions.restoreLocally(entry.app);
+        notify(err.message || 'Could not delete the application', { type: 'error' });
+      }
+    },
+    [actions, notify]
   );
 
-  const hasActiveFilters = Boolean(statusFilter || roleFilter || minSalary || maxSalary || searchQuery);
-  // A single-status filter makes the board pointless, so show the grid instead.
-  const effectiveView = statusFilter ? 'grid' : viewMode;
-
-  const replaceApplication = useCallback((updated) => {
-    setApplications((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+  // Leaving the page (or closing the tab) completes any delete still in its undo window.
+  // The effect runs once; the ref always points at the latest commitDelete.
+  const commitDeleteRef = useRef(commitDelete);
+  commitDeleteRef.current = commitDelete;
+  useEffect(() => {
+    const pending = pendingDeletes.current;
+    const flush = () => [...pending.keys()].forEach((id) => commitDeleteRef.current(id, { keepalive: true }));
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
   }, []);
 
-  const handleCreate = () => {
-    setEditingApplication(null);
-    setShowForm(true);
+  // ---------------------------------------------------------------------- actions
+
+  const openCreate = () => {
+    setFormError('');
+    setForm({ application: null });
   };
 
-  const handleEdit = (application) => {
-    setEditingApplication(application);
-    setShowForm(true);
+  const openEdit = (app) => {
+    setFormError('');
+    setForm({ application: app });
   };
 
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingApplication(null);
-  };
-
-  const handleFormSubmit = async (formData) => {
-    const payload = toApplicationPayload(formData);
-    const isEdit = Boolean(editingApplication);
+  const submitForm = async (values) => {
+    const payload = toApplicationPayload(values);
+    const editing = form.application;
+    setIsSaving(true);
+    setFormError('');
     try {
-      setIsSaving(true);
-      if (isEdit) {
-        replaceApplication(await updateApplication(editingApplication.id, payload));
-      } else {
-        const created = await createApplication(payload);
-        setApplications((prev) => [created, ...prev]);
-      }
-      closeForm();
-      setError('');
-      showToast(isEdit ? 'Application updated!' : 'Application created!');
+      if (editing) await actions.update(editing.id, payload);
+      else await actions.create(payload);
+      setForm(null);
+      notify(editing ? 'Application updated' : 'Application added');
     } catch (err) {
-      showToast(err.message || 'Failed to save application', { type: 'error' });
+      setFormError(err.message || 'Failed to save the application');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this application?')) return;
-    try {
-      await deleteApplication(id);
-      setApplications((prev) => prev.filter((a) => a.id !== id));
-      showToast('Application deleted');
-    } catch (err) {
-      showToast(err.message || 'Failed to delete application', { type: 'error' });
-    }
-  };
-
-  /** Optimistically moves a card, then reconciles with the server (or rolls back). */
-  const changeStatus = useCallback(
-    async (application, newStatus) => {
-      const previous = application;
-      replaceApplication({ ...application, status: newStatus });
-      try {
-        const updated = await updateApplicationStatus(application.id, newStatus);
-        replaceApplication(updated);
-        return true;
-      } catch (err) {
-        replaceApplication(previous);
-        showToast(err.message || 'Failed to update status', { type: 'error' });
-        return false;
-      }
-    },
-    [replaceApplication, showToast]
-  );
-
-  const handleStatusChange = async (application, newStatus) => {
-    if (application.status === newStatus) return;
-    if (newStatus === 'Offer') {
-      setOfferModal({ application });
+  const changeStatus = async (app, status) => {
+    if (app.status === status) return;
+    if (status === 'Offer') {
+      setOfferFor(app);
       return;
     }
-    if (await changeStatus(application, newStatus)) {
-      const { message, icon } = statusToast(application.status, newStatus);
-      showToast(message, { icon });
+    try {
+      await actions.changeStatus(app, status);
+      const { message, icon } = statusToast(app.status, status);
+      notify(message, {
+        icon,
+        action: { label: 'Undo', onClick: () => actions.changeStatus({ ...app, status }, app.status).catch(() => {}) },
+      });
+    } catch (err) {
+      notify(err.message || 'Failed to update status', { type: 'error' });
     }
   };
 
-  const handleOfferConfirm = async () => {
-    const { application } = offerModal;
-    setOfferModal(null);
-    if (await changeStatus(application, 'Offer')) {
-      setCelebrationModal({ companyName: application.company });
+  const confirmOffer = async () => {
+    const app = offerFor;
+    setOfferFor(null);
+    try {
+      await actions.changeStatus(app, 'Offer');
+      setCelebrate(app.company);
+    } catch (err) {
+      notify(err.message || 'Failed to update status', { type: 'error' });
     }
   };
 
-  // "Just testing": close the dialog and leave the status unchanged.
-  const handleOfferCancel = () => setOfferModal(null);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login', { replace: true });
+  const toggleArchive = async (app) => {
+    const archived = !app.archived;
+    try {
+      await actions.setArchived(app, archived);
+      notify(archived ? `Archived ${app.company}` : `Restored ${app.company}`, {
+        icon: archived ? '📦' : '↩',
+        action: { label: 'Undo', onClick: () => actions.setArchived({ ...app, archived }, !archived).catch(() => {}) },
+      });
+    } catch (err) {
+      notify(err.message || 'Failed to update the application', { type: 'error' });
+    }
   };
 
-  const clearAdvancedFilters = () => {
-    setRoleFilter('');
-    setMinSalary('');
-    setMaxSalary('');
+  const requestDelete = (app) => {
+    if (drawerId === app.id) setDrawerId(null);
+    actions.removeLocally(app.id);
+    const timer = setTimeout(() => commitDelete(app.id), UNDO_MS);
+    pendingDeletes.current.set(app.id, { timer, app });
+    notify(`Deleted ${app.company}`, {
+      icon: '🗑',
+      duration: UNDO_MS,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const entry = pendingDeletes.current.get(app.id);
+          if (!entry) return;
+          clearTimeout(entry.timer);
+          pendingDeletes.current.delete(app.id);
+          actions.restoreLocally(entry.app);
+        },
+      },
+    });
   };
+
+  const cardProps = {
+    onOpen: (app) => setDrawerId(app.id),
+    onEdit: openEdit,
+    onArchive: toggleArchive,
+    onDelete: requestDelete,
+  };
+
+  // ------------------------------------------------------------------------ render
 
   const renderContent = () => {
-    if (isLoading) {
-      return <div className={styles.loading}>Loading applications...</div>;
-    }
-    if (applications.length === 0) {
+    if (isLoading) return <DashboardSkeleton />;
+    if (isError && applications.length === 0) {
       return (
-        <div className={styles.empty}>
-          <div className={styles.emptyIcon}>📋</div>
-          <p className={styles.emptyTitle}>No applications yet</p>
-          <p className={styles.emptyText}>Start tracking your job applications to stay organized</p>
-          <Button onClick={handleCreate}>Add Your First Application</Button>
+        <div className={styles.state} role="alert">
+          <div className={styles.stateIcon} aria-hidden="true">⚠️</div>
+          <h2>Couldn't load your applications</h2>
+          <p>{error?.message || 'Something went wrong.'}</p>
+          <Button onClick={() => refetch()} disabled={isFetching}>
+            {isFetching ? 'Retrying…' : 'Try again'}
+          </Button>
         </div>
       );
     }
-    if (visibleApplications.length === 0) {
+    if (activeCount === 0 && !showArchived) {
       return (
-        <div className={styles.empty}>
-          <div className={styles.emptyIcon}>🔍</div>
-          <p className={styles.emptyTitle}>No results found</p>
-          <p className={styles.emptyText}>Try adjusting your search or filters</p>
+        <div className={styles.state}>
+          <div className={styles.stateIcon} aria-hidden="true">📋</div>
+          <h2>Track your first application</h2>
+          <p>Add the jobs you've applied to and move them across the board as you hear back.</p>
+          <Button onClick={openCreate}>+ Add your first application</Button>
+          {archivedCount > 0 && (
+            <Button variant="ghost" onClick={() => setShowArchived(true)}>
+              View {archivedCount} archived
+            </Button>
+          )}
+        </div>
+      );
+    }
+    if (visible.length === 0) {
+      return (
+        <div className={styles.state}>
+          <div className={styles.stateIcon} aria-hidden="true">{showArchived ? '📦' : '🔍'}</div>
+          <h2>{showArchived && !filtering ? 'Nothing archived' : 'No matching applications'}</h2>
+          <p>
+            {showArchived && !filtering
+              ? 'Archive rejected or old applications to keep your board focused.'
+              : 'Try a different search or clear the filters.'}
+          </p>
+          {filtering && (
+            <Button variant="secondary" onClick={() => setFilters(EMPTY_FILTERS)}>
+              Clear all filters
+            </Button>
+          )}
         </div>
       );
     }
     if (effectiveView === 'board') {
-      return (
-        <TrelloBoard
-          applications={visibleApplications}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onStatusChange={handleStatusChange}
-        />
-      );
+      return <Board applications={visible} onStatusChange={changeStatus} {...cardProps} />;
     }
     return (
       <div className={styles.grid}>
-        {visibleApplications.map((app) => (
-          <ApplicationCard key={app.id} application={app} onEdit={handleEdit} onDelete={handleDelete} />
+        {visible.map((app) => (
+          <ApplicationCard key={app.id} application={app} onStatusChange={changeStatus} {...cardProps} />
         ))}
       </div>
     );
   };
 
   return (
-    <div className={styles.container}>
+    <div className={styles.page}>
+      <div className={styles.titleRow}>
+        <div>
+          <h1 className={styles.title}>{showArchived ? 'Archived applications' : 'Applications'}</h1>
+          {!isLoading && applications.length > 0 && (
+            <p className={styles.subtitle} aria-live="polite">
+              {filtering ? `${visible.length} of ${showArchived ? archivedCount : activeCount} shown` : `${showArchived ? archivedCount : activeCount} total`}
+            </p>
+          )}
+        </div>
+        <Button onClick={openCreate} className={styles.addButton} aria-label="Add application">
+          <span aria-hidden="true" className={styles.plus}>+</span>
+          <span className={styles.addLabel}>Add application</span>
+        </Button>
+      </div>
+
+      {!isLoading && !isError && !showArchived && activeCount > 0 && (
+        <>
+          <Statistics applications={applications} activeStatus={filters.status} onSelectStatus={(status) => setFilters((f) => ({ ...f, status }))} />
+          <UpcomingInterviews applications={applications} onOpen={(app) => setDrawerId(app.id)} />
+        </>
+      )}
+
+      {!isLoading && applications.length > 0 && (
+        <Toolbar
+          filters={filters}
+          onFiltersChange={setFilters}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          view={effectiveView}
+          onViewChange={(v) => {
+            changeView(v);
+            if (v === 'board') setFilters((f) => ({ ...f, status: null }));
+          }}
+          roles={roles}
+          tags={tags}
+          showArchived={showArchived}
+          onShowArchivedChange={setShowArchived}
+          archivedCount={archivedCount}
+        />
+      )}
+
+      {renderContent()}
+
+      {form && (
+        <Modal
+          title={form.application ? `Edit ${form.application.company}` : 'Add application'}
+          size="lg"
+          onClose={() => setForm(null)}
+          closeOnBackdrop={false}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setForm(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" form={APPLICATION_FORM_ID} disabled={isSaving}>
+                {isSaving ? 'Saving…' : form.application ? 'Save changes' : 'Add application'}
+              </Button>
+            </>
+          }
+        >
+          <ApplicationForm
+            application={form.application}
+            onSubmit={submitForm}
+            existingRoles={roles}
+            existingTags={tags}
+            serverError={formError}
+          />
+        </Modal>
+      )}
+
+      {drawerApp && !form && (
+        <ApplicationDrawer
+          application={drawerApp}
+          onClose={() => setDrawerId(null)}
+          onEdit={openEdit}
+          actions={actions}
+          notify={notify}
+        />
+      )}
+
+      {offerFor && <OfferModal companyName={offerFor.company} onConfirm={confirmOffer} onCancel={() => setOfferFor(null)} />}
+      {celebrate && <CelebrationModal companyName={celebrate} onClose={() => setCelebrate(null)} />}
+
       {toast && (
         <Toast
           key={toast.id}
@@ -273,112 +385,11 @@ function Dashboard() {
           type={toast.type}
           icon={toast.icon}
           celebration={toast.celebration}
-          onClose={hideToast}
+          action={toast.action}
+          duration={toast.duration || (toast.action ? 6000 : 4000)}
+          onClose={() => setToast(null)}
         />
       )}
-      {offerModal && (
-        <OfferModal
-          companyName={offerModal.application.company}
-          onConfirm={handleOfferConfirm}
-          onCancel={handleOfferCancel}
-        />
-      )}
-      {celebrationModal && (
-        <CelebrationModal
-          companyName={celebrationModal.companyName}
-          onClose={() => setCelebrationModal(null)}
-        />
-      )}
-
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <h1 className={styles.title}>ApplyRec</h1>
-          {applications.length > 0 && (
-            <span className={styles.appCount}>
-              {hasActiveFilters
-                ? `${visibleApplications.length} of ${applications.length} applications`
-                : `${applications.length} applications`}
-            </span>
-          )}
-        </div>
-        <div className={styles.headerActions}>
-          <Button onClick={handleCreate} disabled={showForm}>
-            Add Application
-          </Button>
-          <Button variant="secondary" onClick={handleLogout}>
-            Logout
-          </Button>
-        </div>
-      </header>
-
-      <main className={styles.main}>
-        {showForm ? (
-          <div className={styles.formContainer}>
-            <ApplicationForm
-              application={editingApplication}
-              onSubmit={handleFormSubmit}
-              onCancel={closeForm}
-              isLoading={isSaving}
-              existingRoles={existingRoles}
-            />
-          </div>
-        ) : (
-          <>
-            <Statistics applications={applications} />
-
-            <div className={styles.controls}>
-              <div className={styles.controlsLeft}>
-                <SearchBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-              </div>
-              <div className={styles.controlsRight}>
-                <SortOptions sortBy={sortBy} onSortChange={setSortBy} />
-                {!statusFilter && (
-                  <div className={styles.viewToggle}>
-                    <button
-                      type="button"
-                      className={`${styles.viewButton} ${viewMode === 'grid' ? styles.active : ''}`}
-                      onClick={() => setViewMode('grid')}
-                    >
-                      Grid
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.viewButton} ${viewMode === 'board' ? styles.active : ''}`}
-                      onClick={() => setViewMode('board')}
-                    >
-                      Board
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <AdvancedFilters
-              roles={existingRoles}
-              selectedRole={roleFilter}
-              onRoleChange={setRoleFilter}
-              minSalary={minSalary}
-              maxSalary={maxSalary}
-              onMinSalaryChange={setMinSalary}
-              onMaxSalaryChange={setMaxSalary}
-              onClear={clearAdvancedFilters}
-            />
-
-            <FilterBar selectedStatus={statusFilter} onFilterChange={setStatusFilter} />
-
-            {error && (
-              <div className={styles.error}>
-                {error}{' '}
-                <Button variant="secondary" onClick={() => loadApplications()}>
-                  Retry
-                </Button>
-              </div>
-            )}
-
-            {renderContent()}
-          </>
-        )}
-      </main>
     </div>
   );
 }

@@ -23,7 +23,9 @@ to seed `test@applyrec.com / test123` into an empty database.
 ./mvnw test
 ```
 
-Tests use mocks and MockMvc slices; no database is needed.
+Unit and MockMvc tests use mocks. The `*IT` integration tests (migrations on production-like
+data, full API flows, password reset, reminders) run against an embedded PostgreSQL 18 that Maven
+downloads once; no Docker or local database is required, and no remote database is touched.
 
 ## Build
 
@@ -40,3 +42,6 @@ docker build -t applyrec-api . # production image (non-root, SPRING_PROFILES_ACT
 - Security: stateless JWT; unauthenticated requests get a JSON `401`. CORS origins come from
   `APP_CORS_ALLOWED_ORIGINS`.
 - Schema: Flyway migrations in `src/main/resources/db/migration`; Hibernate `ddl-auto=none`.
+- Email: `EmailSender` is Resend when `RESEND_API_KEY` is set, otherwise a logger (bodies are only
+  logged with the `dev` profile). Reminder job: `InterviewReminderService` (every 10 min, 24h lookahead).
+- Rate limits: `RateLimiter` (in-memory, per instance) — failed logins per email, auth calls per IP.

@@ -22,9 +22,23 @@ public final class AuthDtos {
     ) {
     }
 
+    public record ForgotPasswordRequest(
+            @Email @NotBlank @Size(max = 255) String email
+    ) {
+    }
+
+    public record ResetPasswordRequest(
+            @NotBlank @Size(max = 200) String token,
+            @NotBlank @Size(min = 6, max = 72, message = "must be between 6 and 72 characters") String password
+    ) {
+    }
+
     public record AuthResponse(String message, UserInfo user, String token) {
     }
 
     public record UserInfo(Long id, String email) {
+    }
+
+    public record MessageResponse(String message) {
     }
 }

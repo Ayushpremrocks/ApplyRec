@@ -1,0 +1,139 @@
+/* Desktop: all five columns visible. Smaller screens: columns scroll sideways with snapping. */
+.board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(260px, 1fr));
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 320px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  scroll-snap-align: start;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.over {
+  border-color: var(--status);
+  background: color-mix(in srgb, var(--status) 8%, var(--bg-elevated));
+}
+
+.columnHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 12px;
+}
+
+.columnTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--status);
+}
+
+.count {
+  min-width: 28px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.draggable {
+  touch-action: manipulation;
+  cursor: grab;
+}
+
+.draggable:active {
+  cursor: grabbing;
+}
+
+.handle {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -6px 0 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: grab;
+}
+
+.handle:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  min-height: 96px;
+  padding: 16px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.overlay {
+  cursor: grabbing;
+  transform: rotate(2deg);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 1280px) {
+  .board {
+    grid-template-columns: repeat(5, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .board {
+    /* Each column takes most of the screen, with the next one peeking in. */
+    grid-template-columns: repeat(5, 84%);
+    gap: 12px;
+    margin: 0 -16px;
+    padding: 0 16px 8px;
+    scroll-padding: 0 16px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .column {
+    min-height: 240px;
+  }
+}
