@@ -11,9 +11,7 @@
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
+- [Testing](#testing)
 - [Environment Variables](#environment-variables)
 - [API Reference](#api-reference)
 - [Deployment](#deployment)
@@ -23,20 +21,19 @@
 
 ## Overview
 
-**ApplyRec** is a full-stack web application that helps job seekers track their job applications from start to finish. It provides a Kanban-style board view and a list view to organise applications by status, with search, filtering, and sorting capabilities.
+**ApplyRec** helps job seekers track applications from start to finish. It provides a Kanban-style board and a grid view, with search, filtering and sorting.
 
 ---
 
 ## Features
 
-- 🔐 **JWT Authentication** — Secure signup / login with token-based sessions
-- 📋 **Kanban Board** — Drag-friendly Trello-style board grouped by application status
-- 📊 **Statistics Dashboard** — At-a-glance summary of total, active, and offer applications
-- ➕ **Application Management** — Create, edit, and delete job applications
-- 🔍 **Search & Filter** — Filter by status, role, and salary range; sort by newest / oldest
-- 🎉 **Celebration Modals** — Animated modal when you land an offer
-- 🔔 **Toast Notifications** — Non-intrusive success / error feedback
-- 📦 **Dockerised Backend** — Ready-to-deploy Spring Boot image
+- 🔐 **JWT Authentication** — signup / login with token-based sessions; expired sessions redirect to login
+- 📋 **Kanban Board** — drag cards between status columns (optimistic updates with rollback on failure)
+- 📊 **Statistics** — totals per status across all your applications
+- ➕ **Application Management** — create, edit and delete applications
+- 🔍 **Search & Filter** — by company, status, role and salary range (LPA, decimals supported); multiple sort orders
+- 🎉 **Celebration Modal** — when you land an offer
+- 📦 **Dockerised Backend** — non-root, memory-aware Spring Boot image
 
 ---
 
@@ -44,15 +41,12 @@
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React 18, React Router v6, CSS Modules |
+| **Frontend** | React 18, React Router 7, Vite 6, CSS Modules, Vitest |
 | **Backend** | Spring Boot 3.2, Java 17, Spring Security |
-| **Database** | PostgreSQL (with Flyway migrations) |
-| **Auth** | JWT (JJWT 0.11.5, HMAC-SHA) |
-| **ORM** | Spring Data JPA / Hibernate |
-| **Build** | Maven 3 |
-| **Containerisation** | Docker (multi-stage build) |
-| **Frontend Hosting** | Vercel |
-| **Backend Hosting** | Render |
+| **Database** | PostgreSQL (Flyway migrations) |
+| **Auth** | JWT (JJWT 0.11.5, HS256) |
+| **Build** | Maven (wrapper included) |
+| **Hosting** | Vercel (frontend), Render (backend, Docker) |
 
 ---
 
@@ -60,34 +54,30 @@
 
 ```
 ApplyRec/
-├── Backend/                     # Spring Boot application
-│   ├── src/
-│   │   └── main/
-│   │       ├── java/com/applyrec/
-│   │       └── resources/
+├── Backend/                         # Spring Boot API
+│   ├── src/main/java/com/applyrec/
+│   │   ├── config/                  # Security, CORS, dev seed data
+│   │   ├── controller/              # REST endpoints
+│   │   ├── dto/                     # Request/response records
+│   │   ├── entity/                  # JPA entities
+│   │   ├── exception/               # Typed exceptions + global JSON error handler
+│   │   ├── repository/              # Spring Data repositories
+│   │   ├── security/                # JWT filter/service
+│   │   └── service/                 # Business logic
+│   ├── src/main/resources/db/migration/   # Flyway SQL migrations
+│   ├── src/test/                    # Unit + MVC slice tests
 │   ├── Dockerfile
+│   ├── mvnw / mvnw.cmd
 │   └── pom.xml
-└── Frontend/                    # React application
-    ├── public/
+└── Frontend/                        # React (Vite) app
+    ├── index.html
+    ├── vite.config.js
+    ├── vercel.json
     └── src/
-        ├── components/          # Reusable UI components
-        │   ├── ApplicationCard
-        │   ├── ApplicationForm
-        │   ├── AdvancedFilters
-        │   ├── CelebrationModal
-        │   ├── FilterBar
-        │   ├── OfferModal
-        │   ├── SearchBar
-        │   ├── SortOptions
-        │   ├── Statistics
-        │   ├── Toast
-        │   └── TrelloBoard
-        ├── pages/               # Route-level pages
-        │   ├── Landing
-        │   ├── Login
-        │   ├── Signup
-        │   └── Dashboard
-        └── services/            # API service layer
+        ├── components/              # UI components
+        ├── pages/                   # Landing, Login, Signup, Dashboard
+        ├── services/                # API client
+        └── utils/                   # Date + filtering helpers
 ```
 
 ---
@@ -99,69 +89,48 @@ ApplyRec/
 | Tool | Version |
 |---|---|
 | Java | 17+ |
-| Maven | 3.9+ |
-| Node.js | 18+ |
-| npm | 9+ |
-| PostgreSQL | 14+ |
+| Node.js | 20+ |
+| PostgreSQL | 14+ (local or hosted) |
+
+Maven is not required — use the bundled `./mvnw` (or `mvnw.cmd` on Windows).
+
+### Backend
+
+```bash
+cd Backend
+export SPRING_DATASOURCE_URL='jdbc:postgresql://localhost:5432/applyrec'
+export SPRING_DATASOURCE_USERNAME='postgres'
+export SPRING_DATASOURCE_PASSWORD='postgres'
+export JWT_SECRET="$(openssl rand -base64 48)"   # must be >= 32 bytes
+export SPRING_PROFILES_ACTIVE=dev
+# Optional: seed a demo account (test@applyrec.com / test123) into an EMPTY database
+export APP_DEV_SEED_ENABLED=true
+./mvnw spring-boot:run
+```
+
+PowerShell equivalent: `$env:JWT_SECRET = "..."` etc., then `.\mvnw.cmd spring-boot:run`.
+
+The API listens on `http://localhost:8080`.
+
+### Frontend
+
+```bash
+cd Frontend
+npm install
+cp .env.example .env      # optional; defaults to http://localhost:8080/api
+npm run dev
+```
+
+The app is served at `http://localhost:3000`.
 
 ---
 
-### Backend Setup
+## Testing
 
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/<your-username>/ApplyRec.git
-   cd ApplyRec/Backend
-   ```
-
-2. **Configure environment variables** (see [Environment Variables](#environment-variables))
-
-3. **Run the application**
-
-   ```bash
-   mvn spring-boot:run
-   ```
-
-   The API will be available at `http://localhost:8080`.
-
-4. **Or build and run the JAR**
-
-   ```bash
-   mvn clean package -DskipTests
-   java -jar target/applyrec-backend-0.0.1-SNAPSHOT.jar
-   ```
-
----
-
-### Frontend Setup
-
-1. **Navigate to the frontend directory**
-
-   ```bash
-   cd ApplyRec/Frontend
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment variables**
-
-   ```bash
-   cp .env.example .env
-   # Edit .env and set REACT_APP_API_URL if needed
-   ```
-
-4. **Start the development server**
-
-   ```bash
-   npm start
-   ```
-
-   The app will be available at `http://localhost:3000`.
+```bash
+cd Backend && ./mvnw test     # JUnit + MockMvc (no database needed)
+cd Frontend && npm test       # Vitest
+```
 
 ---
 
@@ -169,79 +138,83 @@ ApplyRec/
 
 ### Backend
 
-| Variable | Description | Example |
+| Variable | Required | Description |
 |---|---|---|
-| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC URL | `jdbc:postgresql://host:5432/dbname?sslmode=require` |
-| `SPRING_DATASOURCE_USERNAME` | Database username | `db_user` |
-| `SPRING_DATASOURCE_PASSWORD` | Database password | `db_password` |
-| `JWT_SECRET` | Secret key for signing JWT tokens | `a-long-random-secret` |
-| `SPRING_PROFILES_ACTIVE` | Active Spring profile | `dev` or `prod` |
+| `SPRING_DATASOURCE_URL` | ✅ | JDBC URL, e.g. `jdbc:postgresql://host:5432/db?sslmode=require` (**not** `postgres://…`) |
+| `SPRING_DATASOURCE_USERNAME` | ✅ | Database user |
+| `SPRING_DATASOURCE_PASSWORD` | ✅ | Database password |
+| `JWT_SECRET` | ✅ | ≥ 32 bytes; the app refuses to start otherwise. Generate: `openssl rand -base64 48` |
+| `APP_CORS_ALLOWED_ORIGINS` | ✅ in prod | Comma-separated frontend origins (patterns allowed), e.g. `https://applyrec.vercel.app` |
+| `SPRING_PROFILES_ACTIVE` | | `prod` in production (default in the Docker image), `dev` locally |
+| `APP_DEV_SEED_ENABLED` | | `true` seeds a demo account — only honoured with the `dev` profile. Never set in prod |
+| `DB_POOL_SIZE` | | Max DB connections in `prod` (default `5`) |
+| `PORT` | | HTTP port (default `8080`; set automatically by Render) |
+| `JAVA_OPTS` | | JVM flags (Docker image defaults to `-XX:MaxRAMPercentage=75 …`) |
 
 ### Frontend
 
 | Variable | Description | Default |
 |---|---|---|
-| `REACT_APP_API_URL` | Base URL for the backend API | `http://localhost:8080/api` |
+| `VITE_API_URL` | Backend base URL including `/api`. Baked in at **build time** — redeploy after changing. | `http://localhost:8080/api` |
 
 ---
 
 ## API Reference
 
-All application endpoints require the `Authorization: Bearer <token>` header.
+All `/api/applications/**` endpoints require `Authorization: Bearer <token>`.
+Errors are always JSON: `{"error": "message"}` with an appropriate status (400, 401, 404, 409, 500).
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | `GET` | `/api/health` | No | Health check |
-| `POST` | `/api/auth/signup` | No | Register a new user |
-| `POST` | `/api/auth/login` | No | Login and receive JWT |
-| `POST` | `/api/applications` | Yes | Create a new application |
-| `GET` | `/api/applications` | Yes | List all applications for the user |
-| `GET` | `/api/applications/roles` | Yes | List distinct roles from saved applications |
-| `GET` | `/api/applications/{id}` | Yes | Get a single application |
-| `PUT` | `/api/applications/{id}` | Yes | Update an application |
-| `PATCH` | `/api/applications/{id}/status` | Yes | Update application status only |
-| `DELETE` | `/api/applications/{id}` | Yes | Delete an application |
+| `POST` | `/api/auth/signup` | No | Register (`email`, `password` 6–72 chars) → `201` + token |
+| `POST` | `/api/auth/login` | No | Login → token |
+| `POST` | `/api/applications` | Yes | Create → `201` + `application` |
+| `GET` | `/api/applications` | Yes | List; optional `status`, `role`, `minSalary`, `maxSalary` (decimals) |
+| `GET` | `/api/applications/roles` | Yes | Distinct roles |
+| `GET` | `/api/applications/{id}` | Yes | Get one |
+| `PUT` | `/api/applications/{id}` | Yes | Update → `application` |
+| `PATCH` | `/api/applications/{id}/status` | Yes | Update status only → `application` |
+| `DELETE` | `/api/applications/{id}` | Yes | Delete |
+
+Salary is stored in LPA as `DECIMAL(6,2)` (0 – 9999.99).
 
 ---
 
 ## Deployment
 
-### Backend — Render (Docker)
+### 1. Database
+Create a PostgreSQL database (Neon, Render Postgres, Supabase…). Convert the provider's
+`postgres://user:pass@host:port/db` URL to `jdbc:postgresql://host:port/db?sslmode=require`
+and pass the user/password separately. Flyway creates the schema on first start.
 
-1. Connect your GitHub repository to a new **Render Web Service**.
-2. Select **Docker** as the runtime — Render will use `Backend/Dockerfile` automatically.
-3. Set the following environment variables in the Render dashboard:
+### 2. Backend — Render (Docker)
+1. New **Web Service** → connect the repo → **Root Directory** `Backend`, runtime **Docker**.
+2. Health check path: `/api/health`.
+3. Environment: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`,
+   `JWT_SECRET`, `APP_CORS_ALLOWED_ORIGINS=https://<your-app>.vercel.app`.
+   (`SPRING_PROFILES_ACTIVE=prod` is already set in the image.)
 
-   | Variable | Value |
-   |---|---|
-   | `SPRING_DATASOURCE_URL` | Your PostgreSQL connection string |
-   | `SPRING_DATASOURCE_USERNAME` | Database username |
-   | `SPRING_DATASOURCE_PASSWORD` | Database password |
-   | `JWT_SECRET` | A strong, random secret |
-   | `SPRING_PROFILES_ACTIVE` | `prod` |
+Any Docker host works the same way:
+```bash
+docker build -t applyrec-api Backend
+docker run -p 8080:8080 --env-file prod.env applyrec-api
+```
 
-   > **Note:** Render automatically injects the `PORT` environment variable. The app binds to `${PORT:8080}` by default.
+### 3. Frontend — Vercel
+1. Import the repo → **Root Directory** `Frontend` (framework auto-detected as Vite).
+2. Environment variable: `VITE_API_URL=https://<your-render-service>.onrender.com/api`.
+3. Deploy. `vercel.json` handles SPA routing and caching headers.
 
-### Frontend — Vercel
-
-1. Import the repository into **Vercel** and set the **Root Directory** to `Frontend`.
-2. Add the following environment variable:
-
-   | Variable | Value |
-   |---|---|
-   | `REACT_APP_API_URL` | `https://<your-render-service>.onrender.com/api` |
-
-3. Deploy — Vercel will run `npm run build` automatically.
+After the frontend URL is known, make sure it is in the backend's `APP_CORS_ALLOWED_ORIGINS`.
 
 ---
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m "feat: add your feature"`
-4. Push to the branch: `git push origin feature/your-feature`
-5. Open a Pull Request
+1. Create a feature branch: `git checkout -b feature/your-feature`
+2. Run both test suites before pushing
+3. Open a Pull Request
 
 ---
 

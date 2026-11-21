@@ -3,21 +3,17 @@ import styles from './ApplicationForm.module.css';
 import Input from './Input';
 import Select from './Select';
 import Button from './Button';
+import { STATUSES, hasValue } from '../utils/applications';
+import { todayIso } from '../utils/date';
 
-const STATUS_OPTIONS = [
-  { value: 'Applied', label: 'Applied' },
-  { value: 'OA', label: 'OA' },
-  { value: 'Interview', label: 'Interview' },
-  { value: 'Rejected', label: 'Rejected' },
-  { value: 'Offer', label: 'Offer' },
-];
+const STATUS_OPTIONS = STATUSES.map((s) => ({ value: s, label: s }));
 
 function ApplicationForm({ application, onSubmit, onCancel, isLoading, existingRoles = [] }) {
   const [formData, setFormData] = useState({
     company: '',
     role: '',
     status: 'Applied',
-    appliedDate: '',
+    appliedDate: todayIso(),
     notes: '',
     followUp: false,
     jobId: '',
@@ -28,16 +24,16 @@ function ApplicationForm({ application, onSubmit, onCancel, isLoading, existingR
 
   useEffect(() => {
     if (application) {
-      const date = new Date(application.applied_date).toISOString().split('T')[0];
       setFormData({
         company: application.company,
         role: application.role,
         status: application.status,
-        appliedDate: date,
+        // The API sends a plain "YYYY-MM-DD" date; use it as-is to avoid timezone shifts.
+        appliedDate: application.applied_date || '',
         notes: application.notes || '',
         followUp: application.follow_up || false,
         jobId: application.job_id || '',
-        salary: application.salary || '',
+        salary: hasValue(application.salary) ? String(application.salary) : '',
       });
     }
   }, [application]);
@@ -123,7 +119,9 @@ function ApplicationForm({ application, onSubmit, onCancel, isLoading, existingR
         label="Salary (LPA)"
         name="salary"
         type="number"
-        step="0.1"
+        step="0.01"
+        min="0"
+        max="9999.99"
         value={formData.salary}
         onChange={handleChange}
         placeholder="e.g., 12, 14.5"

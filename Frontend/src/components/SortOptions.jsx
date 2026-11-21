@@ -1,20 +1,15 @@
 import React from 'react';
 import styles from './SortOptions.module.css';
-
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest First' },
-  { value: 'oldest', label: 'Oldest First' },
-  { value: 'company-asc', label: 'Company A-Z' },
-  { value: 'company-desc', label: 'Company Z-A' },
-  { value: 'salary-high', label: 'Salary: High to Low' },
-  { value: 'salary-low', label: 'Salary: Low to High' },
-];
+import { SORT_OPTIONS } from '../utils/applications';
 
 function SortOptions({ sortBy, onSortChange }) {
   return (
     <div className={styles.container}>
-      <label className={styles.label}>Sort by:</label>
+      <label className={styles.label} htmlFor="sort-by">
+        Sort by:
+      </label>
       <select
+        id="sort-by"
         className={styles.select}
         value={sortBy}
         onChange={(e) => onSortChange(e.target.value)}
