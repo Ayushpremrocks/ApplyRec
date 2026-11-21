@@ -10,8 +10,8 @@
   z-index: 2000;
   padding: 10px 14px;
   border-radius: 8px;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--primary);
+  color: var(--on-primary);
   font-weight: 700;
 }
 
@@ -28,7 +28,7 @@
   gap: 16px;
   height: var(--header-h);
   padding: 0 max(24px, env(safe-area-inset-left));
-  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
   backdrop-filter: saturate(160%) blur(12px);
   -webkit-backdrop-filter: saturate(160%) blur(12px);
   border-bottom: 1px solid var(--border);
@@ -38,19 +38,19 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 1.2rem;
-  font-weight: 800;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text);
   text-decoration: none;
   flex: none;
 }
 
 .logoDot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
 }
 
 .nav {
@@ -66,10 +66,11 @@
   min-height: 40px;
   padding: 8px 14px;
   border-radius: 10px;
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 550;
   color: var(--text-2);
   text-decoration: none;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .navLink:hover {
@@ -79,11 +80,7 @@
 
 .navLink.active {
   color: var(--text);
-  background: var(--accent-soft);
-}
-
-.navLink.active svg {
-  color: var(--accent-text);
+  background: var(--surface-2);
 }
 
 .actions {
@@ -98,10 +95,11 @@
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--text-2);
   cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .iconButton:hover {

@@ -3,10 +3,7 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(600px 400px at 85% -10%, var(--accent-soft), transparent 70%),
-    radial-gradient(500px 400px at -10% 110%, color-mix(in srgb, var(--st-interview) 10%, transparent), transparent 70%),
-    var(--bg);
+  background: var(--bg);
 }
 
 .top {
@@ -20,18 +17,18 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 1.2rem;
-  font-weight: 800;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text);
   text-decoration: none;
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
 }
 
 .main {
@@ -51,14 +48,14 @@
   flex-direction: column;
   gap: 18px;
   padding: clamp(24px, 5vw, 36px);
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
 }
 
 .title {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   letter-spacing: -0.02em;
 }
 
@@ -74,7 +71,7 @@
 }
 
 .footer a {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .alert {
@@ -90,7 +87,7 @@
 
 .success {
   background: var(--accent-soft);
-  color: var(--accent-text);
+  color: var(--text);
 }
 
 .info {

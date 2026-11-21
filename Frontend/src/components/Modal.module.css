@@ -4,7 +4,7 @@
   z-index: 1000;
   background: var(--overlay);
   display: flex;
-  animation: fade 0.15s ease;
+  animation: fade 0.2s var(--ease);
 }
 
 .dialog {
@@ -32,7 +32,7 @@
   width: 100%;
   border-radius: var(--radius-lg);
   max-height: calc(100dvh - 48px);
-  animation: pop 0.18s ease;
+  animation: pop 0.22s var(--ease);
 }
 
 .size-sm { max-width: 420px; }
@@ -45,7 +45,7 @@
   max-height: 100dvh;
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
   border-right: none;
-  animation: slide 0.22s ease;
+  animation: slide 0.26s var(--ease);
 }
 
 .header {
@@ -64,7 +64,8 @@
 }
 
 .title {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
+  font-weight: 650;
   min-width: 0;
   overflow-wrap: anywhere;
 }

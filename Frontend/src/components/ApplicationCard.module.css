@@ -6,17 +6,15 @@
   padding: 14px 14px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--status);
   border-radius: var(--radius);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  box-shadow: var(--shadow);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
   min-width: 0;
 }
 
 .card:hover {
   border-color: var(--border-strong);
-  border-left-color: var(--status);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
 }
 
 .dragging {
@@ -44,8 +42,8 @@
 }
 
 .company {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 650;
   color: var(--text);
   overflow-wrap: anywhere;
 }
@@ -70,8 +68,9 @@
 
 .salary {
   font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--accent-text);
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
   margin-right: 2px;
 }
 
@@ -82,10 +81,10 @@
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   background: var(--surface-2);
   color: var(--text-2);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -109,7 +108,7 @@
 
 .postLink {
   gap: 4px;
-  color: var(--accent-text);
+  color: var(--text);
   text-decoration: none;
   overflow: visible;
 }
@@ -126,7 +125,7 @@
   border-radius: 8px;
   font-size: 0.8125rem;
   color: var(--text);
-  background: color-mix(in srgb, var(--st-interview) 12%, transparent);
+  background: var(--surface-2);
 }
 
 .interview svg {
@@ -159,10 +158,11 @@
   max-width: 100%;
   padding: 6px 24px 6px 8px;
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--status);
-  background-color: color-mix(in srgb, var(--status) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--status) 35%, transparent);
+  background-color: color-mix(in srgb, var(--status) 9%, transparent);
+  border: 1px solid transparent;
+  transition: background-color var(--dur) var(--ease);
   border-radius: 8px;
   cursor: pointer;
   appearance: none;
@@ -194,6 +194,10 @@
   background: transparent;
   color: var(--text-3);
   cursor: pointer;
+}
+
+.iconButton {
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .iconButton:hover {

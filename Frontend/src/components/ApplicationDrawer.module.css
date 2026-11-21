@@ -53,8 +53,8 @@
   gap: 12px;
   padding: 14px;
   border-radius: var(--radius);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border: 1px solid transparent;
 }
 
 .facts dt {
@@ -91,9 +91,9 @@
   padding: 2px 10px;
   border-radius: 999px;
   font-size: 0.8125rem;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-weight: 500;
 }
 
 .notes {
@@ -102,7 +102,7 @@
   padding: 12px 14px;
   border-radius: var(--radius);
   background: var(--bg-elevated);
-  border-left: 3px solid var(--accent-2);
+  border-left: 2px solid var(--border-strong);
   color: var(--text-2);
   font-size: 0.9375rem;
 }
@@ -127,7 +127,7 @@
 .linkButton {
   border: none;
   background: none;
-  color: var(--accent-text);
+  color: var(--text);
   font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
@@ -148,7 +148,6 @@
   padding: 12px 14px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--st-interview);
   background: var(--surface);
 }
 

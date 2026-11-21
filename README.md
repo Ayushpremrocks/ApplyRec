@@ -1,252 +1,217 @@
-# ApplyRec 📋
+<div align="center">
 
-> A full-stack job application tracker — log, filter, and manage every application in one place.
+# ApplyRec
+
+**Every job application, one calm place.**
+
+A free, full-stack tracker for students and early-career job seekers: a Kanban board for your
+pipeline, interview reminders, and analytics that show what's actually working.
+
+[**Live app →**](https://apply-rec.vercel.app)
+
+<img src="docs/screenshots/dashboard-light.png" alt="ApplyRec dashboard in light mode" width="900" />
+
+</div>
 
 ---
 
-## Table of Contents
+## Contents
 
-- [Overview](#overview)
 - [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
+- [Screenshots](#screenshots)
+- [Tech stack](#tech-stack)
+- [Run it locally](#run-it-locally)
 - [Testing](#testing)
-- [Environment Variables](#environment-variables)
-- [API Reference](#api-reference)
+- [Configuration](#configuration)
+- [API](#api)
 - [Deployment](#deployment)
-- [Contributing](#contributing)
-
----
-
-## Overview
-
-**ApplyRec** helps job seekers track applications from start to finish. It provides a Kanban-style board and a grid view, with search, filtering and sorting.
-
----
+- [Project structure](#project-structure)
 
 ## Features
 
-- 🔐 **Accounts** — JWT sign-up/login, forgot/reset password by email, brute-force protection (rate-limited login)
-- 📋 **Kanban Board** — drag cards with mouse, touch (long-press) or keyboard; or change status from the card menu. Optimistic updates with rollback
-- 🗂 **Rich applications** — job posting link, on-/off-campus, referral, tags, notes, salary (LPA), follow-up flag
-- 📅 **Interviews & reminders** — schedule rounds per application; an email reminder goes out ~24h before
-- 🕒 **Status timeline** — every status change is recorded
-- 📊 **Analytics** — response / interview / offer rates, time to first response, weekly activity, pipeline, conversion by source and by tag
-- 📦 **Archive** — hide old applications without deleting them; delete has a 5-second **Undo**
-- 🔍 **Search & filter** — company/role/tag search, status, role, tag, source and salary filters, several sort orders
-- 🌗 **Light & dark theme**, fully responsive (phone, tablet, laptop), keyboard and screen-reader friendly
-- ⏰ **Cold-start friendly** — "waking up the server" banner, automatic retries, warm-up ping, optional keep-alive workflow
+**Tracking**
+- **Board and list views.** Drag cards between stages with a mouse, a finger (long-press) or the keyboard, or pick a status from the card menu.
+- **Rich applications.** Job posting link, on- or off-campus, referral, tags, salary (LPA), notes and a follow-up flag.
+- **Interviews.** Schedule every round; an email reminder goes out about 24 hours before.
+- **Status timeline.** Every status change is recorded per application.
+- **Archive and undo.** Archive old applications to keep the board focused; delete and archive both have a 5-second Undo.
+- **Search and filters.** Search company, role or tag; filter by status, role, tag, source and salary; sort several ways.
 
----
+**Insights**
+- **Analytics.** Response, interview and offer rates, average time to first response, applications per week, the pipeline, and interview rate by source (on-campus vs. referral vs. none) and by tag.
 
-## Tech Stack
+**Experience**
+- **Responsive** on phones, tablets and laptops, with a bottom tab bar on phones.
+- **Light and dark theme** that follows your system until you choose.
+- **Accessible.** Keyboard-friendly drag-and-drop, focus-trapped dialogs, labelled controls, and a table view for every chart.
+- **Cold-start friendly.** A "waking up the server" banner, automatic retries and a warm-up ping for free hosting.
+
+**Accounts and security**
+- JWT sign-up and login, forgot/reset password by email (single-use links that expire in 30 minutes), and rate-limited login.
+
+## Screenshots
+
+| Dark mode | Application details |
+|---|---|
+| <img src="docs/screenshots/dashboard-dark.png" alt="Dashboard in dark mode" /> | <img src="docs/screenshots/details-dark.png" alt="Application details with status timeline" /> |
+
+| Analytics | Landing page |
+|---|---|
+| <img src="docs/screenshots/analytics.png" alt="Analytics page" /> | <img src="docs/screenshots/landing.png" alt="Landing page" /> |
+
+<p align="center">
+  <img src="docs/screenshots/mobile-board.png" alt="Board on a phone" width="260" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/mobile-analytics.png" alt="Analytics on a phone, dark mode" width="260" />
+</p>
+
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React 18, React Router 7, TanStack Query 5, dnd-kit, Vite 6, CSS Modules, Vitest |
-| **Backend** | Spring Boot 3.2, Java 17, Spring Security |
-| **Database** | PostgreSQL (Flyway migrations) |
-| **Email** | Resend HTTP API (optional) |
-| **Auth** | JWT (JJWT 0.11.5, HS256) |
-| **Build** | Maven (wrapper included) |
-| **Hosting** | Vercel (frontend), Render (backend, Docker) |
+| Frontend | React 18, React Router 7, TanStack Query 5, dnd-kit, Vite 6, CSS Modules |
+| Backend | Spring Boot 3.2, Java 17, Spring Security (stateless JWT) |
+| Database | PostgreSQL with Flyway migrations |
+| Email | Resend HTTP API (optional) |
+| Tests | JUnit 5, MockMvc, embedded PostgreSQL; Vitest, Testing Library |
+| Hosting | Vercel (frontend), Render via Docker (backend), Neon (database) |
 
----
+## Run it locally
 
-## Project Structure
+**Requirements:** Java 17+, Node.js 20+ and a PostgreSQL database (local or hosted).
+Maven is not needed; use the bundled `./mvnw` (`mvnw.cmd` on Windows).
 
-```
-ApplyRec/
-├── Backend/                         # Spring Boot API
-│   ├── src/main/java/com/applyrec/
-│   │   ├── config/                  # Security, CORS, dev seed data
-│   │   ├── controller/              # REST endpoints
-│   │   ├── dto/                     # Request/response records
-│   │   ├── entity/                  # JPA entities
-│   │   ├── exception/               # Typed exceptions + global JSON error handler
-│   │   ├── repository/              # Spring Data repositories
-│   │   ├── security/                # JWT filter/service
-│   │   └── service/                 # Business logic
-│   ├── src/main/resources/db/migration/   # Flyway SQL migrations
-│   ├── src/test/                    # Unit + MVC slice tests
-│   ├── Dockerfile
-│   ├── mvnw / mvnw.cmd
-│   └── pom.xml
-└── Frontend/                        # React (Vite) app
-    ├── index.html
-    ├── vite.config.js
-    ├── vercel.json
-    └── src/
-        ├── components/              # UI components
-        ├── pages/                   # Landing, Login, Signup, Dashboard
-        ├── services/                # API client
-        └── utils/                   # Date + filtering helpers
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-| Tool | Version |
-|---|---|
-| Java | 17+ |
-| Node.js | 20+ |
-| PostgreSQL | 14+ (local or hosted) |
-
-Maven is not required — use the bundled `./mvnw` (or `mvnw.cmd` on Windows).
-
-### Backend
+**Backend** (runs on `http://localhost:8080`):
 
 ```bash
 cd Backend
 export SPRING_DATASOURCE_URL='jdbc:postgresql://localhost:5432/applyrec'
 export SPRING_DATASOURCE_USERNAME='postgres'
 export SPRING_DATASOURCE_PASSWORD='postgres'
-export JWT_SECRET="$(openssl rand -base64 48)"   # must be >= 32 bytes
+export JWT_SECRET="$(openssl rand -base64 48)"   # at least 32 bytes
 export SPRING_PROFILES_ACTIVE=dev
-# Optional: seed a demo account (test@applyrec.com / test123) into an EMPTY database
-export APP_DEV_SEED_ENABLED=true
+export APP_DEV_SEED_ENABLED=true                  # optional: demo account in an EMPTY database
 ./mvnw spring-boot:run
 ```
 
-PowerShell equivalent: `$env:JWT_SECRET = "..."` etc., then `.\mvnw.cmd spring-boot:run`.
+In PowerShell, set variables with `$env:JWT_SECRET = "..."` and run `.\mvnw.cmd spring-boot:run`.
+With the `dev` profile and no email key, emails (including reset links) are printed to the console.
 
-The API listens on `http://localhost:8080`.
-
-### Frontend
+**Frontend** (runs on `http://localhost:3000`):
 
 ```bash
 cd Frontend
 npm install
-cp .env.example .env      # optional; defaults to http://localhost:8080/api
-npm run dev
+npm run dev        # uses http://localhost:8080/api unless VITE_API_URL is set
 ```
-
-The app is served at `http://localhost:3000`.
-
----
 
 ## Testing
 
 ```bash
-cd Backend && ./mvnw test     # unit + MockMvc tests, plus *IT integration tests
-cd Frontend && npm test       # Vitest + Testing Library
+cd Backend && ./mvnw test    # unit, MockMvc and integration tests
+cd Frontend && npm test      # Vitest + Testing Library
 ```
 
-The backend `*IT` tests start an **embedded PostgreSQL 18** (downloaded once by Maven) — no Docker,
-no local Postgres, and they never connect to your real database.
+The backend integration tests (`*IT`) start an embedded PostgreSQL 18 that Maven downloads once.
+They need no Docker or local database and never connect to a real one.
 
----
-
-## Environment Variables
+## Configuration
 
 ### Backend
 
 | Variable | Required | Description |
 |---|---|---|
-| `SPRING_DATASOURCE_URL` | ✅ | JDBC URL, e.g. `jdbc:postgresql://host:5432/db?sslmode=require` (**not** `postgres://…`) |
-| `SPRING_DATASOURCE_USERNAME` | ✅ | Database user |
-| `SPRING_DATASOURCE_PASSWORD` | ✅ | Database password |
-| `JWT_SECRET` | ✅ | ≥ 32 bytes; the app refuses to start otherwise. Generate: `openssl rand -base64 48` |
-| `APP_CORS_ALLOWED_ORIGINS` | ✅ in prod | Comma-separated frontend origins (patterns allowed), e.g. `https://applyrec.vercel.app` |
-| `SPRING_PROFILES_ACTIVE` | | `prod` in production (default in the Docker image), `dev` locally |
-| `APP_DEV_SEED_ENABLED` | | `true` seeds a demo account — only honoured with the `dev` profile. Never set in prod |
-| `DB_POOL_SIZE` | | Max DB connections in `prod` (default `5`) |
-| `APP_FRONTEND_URL` | ✅ for email | Public frontend URL used in email links, e.g. `https://apply-rec.vercel.app` |
-| `RESEND_API_KEY` | | Enables email (password reset, interview reminders). Without it, no email is sent |
-| `MAIL_FROM` | | Sender, e.g. `ApplyRec <noreply@yourdomain.com>` (default `onboarding@resend.dev`) |
-| `APP_REMINDER_INTERVAL_MS` | | How often the reminder job runs (default `600000` = 10 min) |
-| `PORT` | | HTTP port (default `8080`; set automatically by Render) |
-| `JAVA_OPTS` | | JVM flags (Docker image defaults to `-XX:MaxRAMPercentage=75 …`) |
+| `SPRING_DATASOURCE_URL` | Yes | JDBC URL, e.g. `jdbc:postgresql://host/db?sslmode=require` (not `postgres://…`) |
+| `SPRING_DATASOURCE_USERNAME` | Yes | Database user |
+| `SPRING_DATASOURCE_PASSWORD` | Yes | Database password |
+| `JWT_SECRET` | Yes | At least 32 bytes. Generate with `openssl rand -base64 48` |
+| `APP_CORS_ALLOWED_ORIGINS` | In production | Comma-separated frontend origins, e.g. `https://apply-rec.vercel.app` |
+| `APP_FRONTEND_URL` | For email | Public frontend URL used in email links |
+| `RESEND_API_KEY` | No | Turns on email (password reset, interview reminders) |
+| `MAIL_FROM` | No | Sender, e.g. `ApplyRec <noreply@yourdomain.com>` (default `onboarding@resend.dev`) |
+| `SPRING_PROFILES_ACTIVE` | No | `prod` in the Docker image, `dev` locally |
+| `APP_DEV_SEED_ENABLED` | No | `true` seeds a demo account; only honoured with the `dev` profile |
+| `DB_POOL_SIZE` | No | Max database connections in `prod` (default `5`) |
+| `APP_REMINDER_INTERVAL_MS` | No | How often reminders are checked (default 10 minutes) |
+| `PORT` | No | HTTP port (default `8080`; Render sets it) |
 
 ### Frontend
 
-| Variable | Description | Default |
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Backend URL including `/api`. Applied at build time, so redeploy after changing it. |
+
+## API
+
+All endpoints except `/api/health` and `/api/auth/*` need `Authorization: Bearer <token>`.
+Errors are always JSON: `{"error": "message"}`.
+
+| Method | Endpoint | Description |
 |---|---|---|
-| `VITE_API_URL` | Backend base URL including `/api`. Baked in at **build time** — redeploy after changing. | `http://localhost:8080/api` |
+| `GET` | `/api/health` | Health check |
+| `POST` | `/api/auth/signup` | Create an account → token |
+| `POST` | `/api/auth/login` | Sign in → token (5 failed attempts per email in 15 min → `429`) |
+| `POST` | `/api/auth/forgot-password` | Email a reset link (same reply whether or not the account exists) |
+| `POST` | `/api/auth/reset-password` | Set a new password with the emailed token |
+| `GET` | `/api/applications` | List applications |
+| `POST` | `/api/applications` | Create an application |
+| `GET` | `/api/applications/{id}` | Get one |
+| `PUT` | `/api/applications/{id}` | Update |
+| `PATCH` | `/api/applications/{id}/status` | Change status |
+| `PATCH` | `/api/applications/{id}/archive` | Archive or restore |
+| `DELETE` | `/api/applications/{id}` | Delete |
+| `GET` | `/api/applications/{id}/history` | Status timeline |
+| `POST` | `/api/applications/{id}/interviews` | Schedule an interview |
+| `PUT` | `/api/applications/{id}/interviews/{interviewId}` | Update an interview |
+| `DELETE` | `/api/applications/{id}/interviews/{interviewId}` | Remove an interview |
+| `GET` | `/api/applications/roles` | Distinct roles |
+| `GET` | `/api/analytics` | Rates, pipeline, weekly counts, breakdown by source and tag |
 
----
-
-## API Reference
-
-All `/api/applications/**` endpoints require `Authorization: Bearer <token>`.
-Errors are always JSON: `{"error": "message"}` with an appropriate status (400, 401, 404, 409, 500).
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/health` | No | Health check |
-| `POST` | `/api/auth/signup` | No | Register (`email`, `password` 6–72 chars) → `201` + token |
-| `POST` | `/api/auth/login` | No | Login → token (5 failed attempts per email / 15 min → `429`) |
-| `POST` | `/api/auth/forgot-password` | No | Emails a reset link (same response whether or not the email exists) |
-| `POST` | `/api/auth/reset-password` | No | `token`, `password` → sets a new password (link is single-use, 30 min) |
-| `POST` | `/api/applications` | Yes | Create → `201` + `application` |
-| `GET` | `/api/applications` | Yes | List; optional `status`, `role`, `minSalary`, `maxSalary` (decimals) |
-| `GET` | `/api/applications/roles` | Yes | Distinct roles |
-| `GET` | `/api/applications/{id}` | Yes | Get one |
-| `PUT` | `/api/applications/{id}` | Yes | Update → `application` |
-| `PATCH` | `/api/applications/{id}/status` | Yes | Update status only → `application` |
-| `PATCH` | `/api/applications/{id}/archive` | Yes | `{"archived": true}` or `false` → `application` |
-| `GET` | `/api/applications/{id}/history` | Yes | Status timeline |
-| `POST` | `/api/applications/{id}/interviews` | Yes | Schedule an interview → `application` |
-| `PUT` | `/api/applications/{id}/interviews/{iid}` | Yes | Update an interview → `application` |
-| `DELETE` | `/api/applications/{id}/interviews/{iid}` | Yes | Remove an interview → `application` |
-| `DELETE` | `/api/applications/{id}` | Yes | Delete |
-| `GET` | `/api/analytics` | Yes | Rates, funnel, weekly counts, breakdown by source and tag |
-
-Salary is stored in LPA as `DECIMAL(6,2)` (0 – 9999.99). Applications also accept `jobUrl` (http/https),
-`openingType` (`ON_CAMPUS` | `OFF_CAMPUS`), `referral` (only kept for off-campus) and `tags` (≤ 10, ≤ 30 chars each).
-
----
+Salary is in LPA (0–9999.99). `openingType` is `ON_CAMPUS` or `OFF_CAMPUS`; `referral` is only kept for
+off-campus openings; up to 10 `tags` of 30 characters each.
 
 ## Deployment
 
-### 1. Database
-Create a PostgreSQL database (Neon, Render Postgres, Supabase…). Convert the provider's
-`postgres://user:pass@host:port/db` URL to `jdbc:postgresql://host:port/db?sslmode=require`
-and pass the user/password separately. Flyway creates the schema on first start.
+1. **Database.** Create a PostgreSQL database (for example on Neon). Convert its `postgres://` URL to
+   `jdbc:postgresql://host/db?sslmode=require` and pass the user and password separately.
+   Flyway creates and upgrades the schema on startup.
+2. **Backend on Render.** New Web Service → this repo → Root Directory `Backend`, runtime Docker,
+   health check `/api/health`. Set the database variables, `JWT_SECRET`, `APP_CORS_ALLOWED_ORIGINS`
+   and `APP_FRONTEND_URL`.
+3. **Frontend on Vercel.** Import the repo → Root Directory `Frontend` → set
+   `VITE_API_URL=https://<your-service>.onrender.com/api` → deploy.
+4. **Email (optional).** Create a [Resend](https://resend.com) API key and set `RESEND_API_KEY` and
+   `MAIL_FROM`. Until you verify a domain, Resend only delivers to your own account's address.
+5. **Keep it awake (optional).** `.github/workflows/keep-alive.yml` pings the backend every 10 minutes
+   so Render's free plan doesn't sleep and reminders go out on time. Set a `BACKEND_URL` repository
+   variable to point it elsewhere, or disable the workflow.
 
-### 2. Backend — Render (Docker)
-1. New **Web Service** → connect the repo → **Root Directory** `Backend`, runtime **Docker**.
-2. Health check path: `/api/health`.
-3. Environment: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`,
-   `JWT_SECRET`, `APP_CORS_ALLOWED_ORIGINS=https://<your-app>.vercel.app`.
-   (`SPRING_PROFILES_ACTIVE=prod` is already set in the image.)
+Any Docker host works too: `docker build -t applyrec-api Backend`, then run it with the variables above.
 
-Any Docker host works the same way:
-```bash
-docker build -t applyrec-api Backend
-docker run -p 8080:8080 --env-file prod.env applyrec-api
+## Project structure
+
 ```
-
-### 3. Frontend — Vercel
-1. Import the repo → **Root Directory** `Frontend` (framework auto-detected as Vite).
-2. Environment variable: `VITE_API_URL=https://<your-render-service>.onrender.com/api`.
-3. Deploy. `vercel.json` handles SPA routing and caching headers.
-
-After the frontend URL is known, make sure it is in the backend's `APP_CORS_ALLOWED_ORIGINS`.
-
-### 4. Email (optional: password reset + interview reminders)
-1. Create a free account at [resend.com](https://resend.com) and an API key.
-2. On Render set `RESEND_API_KEY`, `APP_FRONTEND_URL=https://<your-app>.vercel.app` and `MAIL_FROM`.
-   Until you verify a domain in Resend, it only delivers to your own Resend account email
-   (sender `onboarding@resend.dev`); verify a domain to email any user.
-
-### 5. Keep the free backend awake (optional)
-`.github/workflows/keep-alive.yml` pings `/ping` every 10 minutes so Render doesn't sleep and
-reminders go out on time. It uses `https://applyrec.onrender.com` unless you set a `BACKEND_URL`
-repository variable. Disable the workflow if you'd rather save Render hours.
-
----
-
-## Contributing
-
-1. Create a feature branch: `git checkout -b feature/your-feature`
-2. Run both test suites before pushing
-3. Open a Pull Request
-
----
-
-> Made with ☕ and determination.
+ApplyRec/
+├── Backend/                     Spring Boot API
+│   ├── src/main/java/com/applyrec/
+│   │   ├── config/              Security, CORS, mail, scheduling
+│   │   ├── controller/          REST endpoints
+│   │   ├── dto/                 Request and response records
+│   │   ├── entity/              JPA entities
+│   │   ├── exception/           Typed errors and the JSON error handler
+│   │   ├── mail/                Email senders (Resend, console)
+│   │   ├── repository/          Spring Data repositories
+│   │   ├── security/            JWT filter and rate limiter
+│   │   └── service/             Business logic, analytics, reminders
+│   ├── src/main/resources/db/migration/   Flyway migrations
+│   └── Dockerfile
+├── Frontend/                    React app (Vite)
+│   └── src/
+│       ├── components/          UI components and charts
+│       ├── hooks/               Data and theme hooks
+│       ├── pages/               Landing, auth, dashboard, analytics
+│       ├── services/            API client
+│       └── utils/               Dates, filtering, validation
+├── docs/screenshots/            Images used in this README
+└── .github/workflows/           Keep-alive ping
+```

@@ -16,7 +16,7 @@
   color: #fafafa;
   border: 1px solid #3a3a45;
   box-shadow: var(--shadow-lg);
-  animation: up 0.2s ease;
+  animation: up 0.24s var(--ease);
 }
 
 .icon {
@@ -28,8 +28,8 @@
   border-radius: 50%;
   font-size: 0.875rem;
   font-weight: 700;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: #8fcf5c;
+  color: #0d0d0f;
 }
 
 .error .icon {
@@ -83,14 +83,9 @@
   background: rgba(127, 127, 127, 0.2);
 }
 
-.celebration {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
-  color: var(--on-accent);
-}
-
 .celebration .icon {
-  background: var(--on-accent);
-  color: var(--accent);
+  background: #8fcf5c;
+  color: #0d0d0f;
 }
 
 @keyframes up {

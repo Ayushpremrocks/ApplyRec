@@ -56,6 +56,7 @@
   color: var(--text-2);
   text-align: center;
   cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .segment input {
@@ -82,7 +83,7 @@
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--bg-elevated);
+  background: var(--surface-2);
   cursor: pointer;
   font-size: 0.9375rem;
 }
@@ -114,7 +115,7 @@
 }
 
 .switch:checked {
-  background: var(--accent-2);
+  background: var(--accent);
 }
 
 .switch:checked::after {

@@ -60,7 +60,7 @@
     margin-bottom: 14px;
   }
 
-  .addButton {
+  .titleRow .addButton {
     position: fixed;
     right: 16px;
     bottom: calc(80px + env(safe-area-inset-bottom));

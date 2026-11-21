@@ -14,27 +14,30 @@
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   text-align: left;
   min-width: 0;
 }
 
 button.stat {
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 
 button.stat:hover {
-  border-color: var(--status);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
 }
 
-.selected {
-  border-color: var(--status);
-  background: color-mix(in srgb, var(--status) 10%, var(--surface));
+.selected,
+.selected:hover {
+  border-color: color-mix(in srgb, var(--status) 55%, transparent);
 }
 
 .value {
-  font-size: 1.75rem;
-  font-weight: 800;
+  font-size: 1.6rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -45,8 +48,8 @@ button.stat:hover {
   align-items: center;
   gap: 6px;
   font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-2);
+  font-weight: 500;
+  color: var(--text-3);
 }
 
 .dot {
@@ -56,13 +59,8 @@ button.stat:hover {
   background: var(--status);
 }
 
-.total .value {
-  color: var(--accent-text);
-}
-
 .follow {
-  background: var(--warning-soft);
-  border-color: transparent;
+  background: var(--surface);
 }
 
 .follow .value {

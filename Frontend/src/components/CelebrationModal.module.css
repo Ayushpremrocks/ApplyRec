@@ -40,8 +40,8 @@
 
 .company {
   font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--accent-text);
+  font-weight: 650;
+  color: var(--text);
   overflow-wrap: anywhere;
 }
 
