@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import styles from './Login.module.css';
+import styles from './Signup.module.css';
 import Input from '../components/Input';
 import Button from '../components/Button';
-import { login } from '../services/authService';
+import { signup } from '../services/authService';
 
-function Login() {
+function Signup() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -20,13 +20,24 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6 || formData.password.length > 72) {
+      setError('Password must be between 6 and 72 characters');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await login(formData.email, formData.password);
-      navigate('/dashboard');
+      await signup(formData.email, formData.password);
+      navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.message || 'Signup failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -39,8 +50,8 @@ function Login() {
       <div className={styles.floatingDot}></div>
       <div className={styles.floatingDot}></div>
       <div className={styles.card}>
-        <h1 className={styles.title}>Welcome Back</h1>
-        <p className={styles.subtitle}>Sign in to track your applications</p>
+        <h1 className={styles.title}>Get Started</h1>
+        <p className={styles.subtitle}>Create an account to track your applications</p>
 
         {error && <div className={styles.error}>{error}</div>}
 
@@ -63,17 +74,26 @@ function Login() {
             required
           />
 
+          <Input
+            label="Confirm Password"
+            type="password"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+          />
+
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? 'Creating account...' : 'Sign Up'}
           </Button>
         </form>
 
         <p className={styles.footer}>
-          Don't have an account? <Link to="/signup">Sign up</Link>
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </div>
     </div>
   );
 }
 
-export default Login;
+export default Signup;

@@ -1,61 +1,64 @@
 import { apiRequest } from './api';
+import { hasValue } from '../utils/applications';
 
-async function createApplication(company, role, status, appliedDate, notes, followUp, jobId, salary) {
-  return await apiRequest('/applications', {
-    method: 'POST',
-    body: { company, role, status, appliedDate, notes, followUp, jobId, salary },
-  });
+/**
+ * Converts form state into the API's request shape.
+ * Empty strings become null; salary 0 is kept.
+ */
+export function toApplicationPayload(form) {
+  return {
+    company: form.company.trim(),
+    role: form.role.trim(),
+    status: form.status,
+    appliedDate: form.appliedDate,
+    notes: form.notes?.trim() ? form.notes : null,
+    followUp: Boolean(form.followUp),
+    jobId: form.jobId?.trim() ? form.jobId.trim() : null,
+    salary: hasValue(form.salary) ? Number(form.salary) : null,
+  };
 }
 
-async function getApplications(filters = {}) {
+export async function createApplication(payload) {
+  const response = await apiRequest('/applications', { method: 'POST', body: payload });
+  return response.application;
+}
+
+export async function getApplications(filters = {}, { signal } = {}) {
   const params = new URLSearchParams();
-  
-  if (filters.status) params.append('status', filters.status);
-  if (filters.role) params.append('role', filters.role);
-  if (filters.minSalary) params.append('minSalary', filters.minSalary);
-  if (filters.maxSalary) params.append('maxSalary', filters.maxSalary);
-  
-  const queryString = params.toString();
-  const endpoint = queryString ? `/applications?${queryString}` : '/applications';
-  
-  const response = await apiRequest(endpoint, { method: 'GET' });
+  Object.entries(filters).forEach(([key, value]) => {
+    if (hasValue(value)) params.append(key, value);
+  });
+  const query = params.toString();
+  const response = await apiRequest(query ? `/applications?${query}` : '/applications', {
+    method: 'GET',
+    signal,
+  });
   return response.applications;
 }
 
-async function getApplication(id) {
+export async function getApplication(id) {
   const response = await apiRequest(`/applications/${id}`, { method: 'GET' });
   return response.application;
 }
 
-async function updateApplication(id, company, role, status, appliedDate, notes, followUp, jobId, salary) {
-  return await apiRequest(`/applications/${id}`, {
-    method: 'PUT',
-    body: { company, role, status, appliedDate, notes, followUp, jobId, salary },
-  });
+export async function updateApplication(id, payload) {
+  const response = await apiRequest(`/applications/${id}`, { method: 'PUT', body: payload });
+  return response.application;
 }
 
-async function updateApplicationStatus(id, status) {
-  return await apiRequest(`/applications/${id}/status`, {
+export async function updateApplicationStatus(id, status) {
+  const response = await apiRequest(`/applications/${id}/status`, {
     method: 'PATCH',
     body: { status },
   });
+  return response.application;
 }
 
-async function deleteApplication(id) {
-  return await apiRequest(`/applications/${id}`, { method: 'DELETE' });
+export async function deleteApplication(id) {
+  return apiRequest(`/applications/${id}`, { method: 'DELETE' });
 }
 
-async function getRoles() {
+export async function getRoles() {
   const response = await apiRequest('/applications/roles', { method: 'GET' });
   return response.roles;
 }
-
-export {
-  createApplication,
-  getApplications,
-  getApplication,
-  updateApplication,
-  updateApplicationStatus,
-  deleteApplication,
-  getRoles,
-};

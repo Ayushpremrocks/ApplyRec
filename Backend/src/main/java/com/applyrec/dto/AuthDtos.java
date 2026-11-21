@@ -2,99 +2,29 @@ package com.applyrec.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-public class AuthDtos {
+public final class AuthDtos {
 
-    public static class SignupRequest {
-        @Email
-        @NotBlank
-        private String email;
-
-        @NotBlank
-        private String password;
-
-        public String getEmail() {
-            return email;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
+    private AuthDtos() {
     }
 
-    public static class LoginRequest {
-        @Email
-        @NotBlank
-        private String email;
-
-        @NotBlank
-        private String password;
-
-        public String getEmail() {
-            return email;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
+    /** BCrypt only uses the first 72 bytes of a password, hence the upper bound. */
+    public record SignupRequest(
+            @Email @NotBlank @Size(max = 255) String email,
+            @NotBlank @Size(min = 6, max = 72, message = "must be between 6 and 72 characters") String password
+    ) {
     }
 
-    public static class AuthResponse {
-        private String message;
-        private UserInfo user;
-        private String token;
-
-        public AuthResponse(String message, UserInfo user, String token) {
-            this.message = message;
-            this.user = user;
-            this.token = token;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public UserInfo getUser() {
-            return user;
-        }
-
-        public String getToken() {
-            return token;
-        }
+    public record LoginRequest(
+            @NotBlank String email,
+            @NotBlank String password
+    ) {
     }
 
-    public static class UserInfo {
-        private Long id;
-        private String email;
+    public record AuthResponse(String message, UserInfo user, String token) {
+    }
 
-        public UserInfo(Long id, String email) {
-            this.id = id;
-            this.email = email;
-        }
-
-        public Long getId() {
-            return id;
-        }
-
-        public String getEmail() {
-            return email;
-        }
+    public record UserInfo(Long id, String email) {
     }
 }
-

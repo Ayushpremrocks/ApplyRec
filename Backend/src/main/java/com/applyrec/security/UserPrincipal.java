@@ -1,15 +1,5 @@
 package com.applyrec.security;
 
-public class UserPrincipal {
-
-    private final Long userId;
-
-    public UserPrincipal(Long userId) {
-        this.userId = userId;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
+/** The authenticated caller, as identified by the JWT. */
+public record UserPrincipal(Long userId) {
 }
-

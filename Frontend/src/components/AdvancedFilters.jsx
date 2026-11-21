@@ -34,7 +34,8 @@ function AdvancedFilters({
         <div className={styles.salaryInputs}>
           <input
             type="number"
-            step="0.1"
+            step="0.01"
+            min="0"
             className={styles.input}
             placeholder="Min"
             value={minSalary}
@@ -43,7 +44,8 @@ function AdvancedFilters({
           <span className={styles.separator}>-</span>
           <input
             type="number"
-            step="0.1"
+            step="0.01"
+            min="0"
             className={styles.input}
             placeholder="Max"
             value={maxSalary}

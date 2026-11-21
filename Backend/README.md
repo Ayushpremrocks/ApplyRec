@@ -1,41 +1,42 @@
 # ApplyRec Spring Boot Backend
 
-Spring Boot 3 / Java 17 backend for ApplyRec. Mirrors the original Express API so the frontend works unchanged.
+Spring Boot 3 / Java 17 REST API for ApplyRec. See the [root README](../README.md) for the
+full environment-variable reference, API table and deployment guide.
 
 ## Run locally
 
 ```bash
-export SPRING_DATASOURCE_URL='jdbc:postgresql://host:5432/dbname?sslmode=require'
-export SPRING_DATASOURCE_USERNAME='db_user'
-export SPRING_DATASOURCE_PASSWORD='db_password'
-export JWT_SECRET='change-me'
+export SPRING_DATASOURCE_URL='jdbc:postgresql://localhost:5432/applyrec'
+export SPRING_DATASOURCE_USERNAME='postgres'
+export SPRING_DATASOURCE_PASSWORD='postgres'
+export JWT_SECRET="$(openssl rand -base64 48)"   # >= 32 bytes required
 export SPRING_PROFILES_ACTIVE=dev
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
-Starts on `http://localhost:8080` by default.
+Starts on `http://localhost:8080`. Set `APP_DEV_SEED_ENABLED=true` (with the `dev` profile)
+to seed `test@applyrec.com / test123` into an empty database.
 
-## Endpoints
+## Test
 
-- `GET /api/health`
-- `POST /api/auth/signup`
-- `POST /api/auth/login`
-- `POST /api/applications`
-- `GET /api/applications`
-- `GET /api/applications/roles`
-- `GET /api/applications/{id}`
-- `PUT /api/applications/{id}`
-- `PATCH /api/applications/{id}/status`
-- `DELETE /api/applications/{id}`
+```bash
+./mvnw test
+```
 
-All `/api/applications/**` routes require `Authorization: Bearer <token>`.
+Tests use mocks and MockMvc slices; no database is needed.
 
-## Deploy (Render / Docker)
+## Build
 
-- Repo contains `Dockerfile` at the module root.
-- Render env vars:
-  - `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`
-  - `JWT_SECRET`
-  - `SPRING_PROFILES_ACTIVE=prod`
-  - Render sets `PORT` automatically (this app binds to `${PORT:8080}`).
+```bash
+./mvnw clean package          # -> target/app.jar
+docker build -t applyrec-api . # production image (non-root, SPRING_PROFILES_ACTIVE=prod)
+```
 
+## Design notes
+
+- Errors: services throw typed exceptions (`NotFoundException`, `BadRequestException`,
+  `ConflictException`, `UnauthorizedException`); `GlobalExceptionHandler` turns them and all
+  framework errors into `{"error": "..."}` JSON.
+- Security: stateless JWT; unauthenticated requests get a JSON `401`. CORS origins come from
+  `APP_CORS_ALLOWED_ORIGINS`.
+- Schema: Flyway migrations in `src/main/resources/db/migration`; Hibernate `ddl-auto=none`.

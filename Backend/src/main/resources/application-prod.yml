@@ -1,9 +1,18 @@
+# Production profile (SPRING_PROFILES_ACTIVE=prod).
 spring:
-  config:
-    activate:
-      on-profile: prod
+  datasource:
+    hikari:
+      # Small pool: fits free-tier Postgres connection limits.
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 1
+      connection-timeout: 20000
+
+server:
+  # Trust X-Forwarded-* headers from the hosting proxy (Render, etc.).
+  forward-headers-strategy: framework
+  shutdown: graceful
 
 logging:
   level:
     root: INFO
-
+    org.hibernate.SQL: WARN

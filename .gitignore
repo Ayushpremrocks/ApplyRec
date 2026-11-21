@@ -53,7 +53,8 @@ Frontend/.vercel/
 
 # ── ── BACKEND (Java / Maven / Spring Boot) ── ────────────────
 Backend/target/
-Backend/.mvn/
+Backend/.mvn/*
+!Backend/.mvn/wrapper/
 Backend/*.class
 
 # ── Misc ──────────────────────────────────────────────────────
